@@ -34,6 +34,11 @@
 
     /* Player */
     #playerContainer { position: fixed; inset: 0; background: #000; }
+    /* Fullscreen single-zone playback: YouTube's IFrame API replaces our placeholder
+       with an iframe whose width/height attributes don't always survive layout. Pin
+       any direct iframe child to the container so YT/widget embeds fill the screen. */
+    #playerContainer > iframe,
+    #playerContainer > div > iframe { width: 100%; height: 100%; border: none; display: block; }
     .zone { position: absolute; overflow: hidden; }
     .zone video { width: 100%; height: 100%; object-fit: cover; }
     .zone img { width: 100%; height: 100%; object-fit: cover; }
