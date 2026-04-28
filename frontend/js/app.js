@@ -304,3 +304,12 @@ if (isAuthenticated()) {
 }
 window.addEventListener('hashchange', route);
 route();
+
+// Close-modal buttons (replaces inline onclick handlers — required for CSP).
+document.addEventListener('click', (e) => {
+  const closer = e.target.closest('[data-close-modal]');
+  if (!closer) return;
+  const id = closer.dataset.closeModal;
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = 'none';
+});

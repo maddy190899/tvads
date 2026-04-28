@@ -29,27 +29,100 @@ if (hasSsl) {
   server = http.createServer(app);
 }
 
+// Socket.IO CORS is checked via the same corsOriginCheck function defined below
+// (after config is loaded). Hoisted into a closure so we can reference it before
+// the function is defined — at first connection time, corsOriginCheck exists.
 const io = new Server(server, {
-  cors: { origin: '*' },
+  cors: {
+    origin: (origin, cb) => corsOriginCheck(origin, cb),
+    credentials: true,
+  },
   maxHttpBufferSize: 10 * 1024 * 1024 // 10MB for screenshot uploads
 });
 
 // Middleware
 const helmet = require('helmet');
+
+// CSP applies to the dashboard / app pages only. Widget and kiosk renders are
+// publicly accessed by devices and intentionally use inline scripts/styles —
+// they're served from /api/widgets/:id/render and /api/kiosk/:id/render and
+// skip the CSP layer below via path-based opt-out.
+//
+// scriptSrc 'self' blocks <script> injection (the primary XSS vector) and external
+// JS. scriptSrcAttr 'unsafe-inline' allows existing onclick/onchange handlers on
+// dashboard buttons — TODO: refactor these to addEventListener and tighten further.
+// styleSrcAttr 'unsafe-inline' is required because the views use inline style="..."
+// attributes extensively for layout.
+const dashboardCsp = helmet.contentSecurityPolicy({
+  useDefaults: true,
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'"],
+    scriptSrcAttr: ["'unsafe-inline'"],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    styleSrcAttr: ["'unsafe-inline'"],
+    imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+    mediaSrc: ["'self'", 'blob:', 'https:'],
+    connectSrc: ["'self'", 'wss:', 'ws:', 'https:'],
+    fontSrc: ["'self'", 'data:'],
+    frameSrc: ["'self'", 'https://www.youtube.com', 'https://youtube.com'],
+    objectSrc: ["'none'"],
+    baseUri: ["'self'"],
+    formAction: ["'self'"],
+    // Don't force HTTPS — self-hosted deployments may run on HTTP-only LANs.
+    // Public production traffic is upgraded by Cloudflare / the reverse proxy and
+    // protected by the HSTS header set above.
+    upgradeInsecureRequests: null,
+  },
+});
+
 app.use(helmet({
-  contentSecurityPolicy: false, // Allow inline scripts in widget renders
-  crossOriginEmbedderPolicy: false, // Allow loading external widget content
+  contentSecurityPolicy: false,        // we apply our own below, scoped to non-render paths
+  crossOriginEmbedderPolicy: false,    // allow loading external widget content
   hsts: { maxAge: 31536000, includeSubDomains: true },
 }));
-// CORS: open for public content (kiosk, widgets, player, uploads), restricted for API
+
+// Apply CSP everywhere except routes that legitimately need inline scripts:
+// - widget/kiosk renders (public, fetched by devices, intentionally inline)
+// - /player (the web player has inline JS, served to display devices)
+// - /         (landing page has inline JSON-LD + a pricing fetch script)
+// The dashboard at /app uses ES modules only and gets the strict policy.
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/landing.html') return next();
+  if (req.path.startsWith('/player')) return next();
+  if (req.path.startsWith('/api/widgets/') && req.path.endsWith('/render')) return next();
+  if (req.path.startsWith('/api/kiosk/') && req.path.endsWith('/render')) return next();
+  return dashboardCsp(req, res, next);
+});
+// CORS policy.
+// - SELF_HOSTED=true: allow all origins (operator controls their own deployment).
+// - production:       allowlist screentinker.com (+ subdomains) and localhost dev.
+// - development:      open (default).
+// Auth is JWT in Authorization header — credentials:true is kept for any cookie-based
+// future flows but the JWT stays in localStorage and is sent via fetch() explicitly,
+// so an attacker origin can't ride a session.
+const isProd = process.env.NODE_ENV === 'production';
+const allowedHostsProd = [
+  'screentinker.com',
+  'www.screentinker.com',
+  'localhost',
+  '127.0.0.1',
+];
+
+function corsOriginCheck(origin, callback) {
+  // No origin = same-origin / mobile app / server-to-server / kiosk iframe.
+  if (!origin) return callback(null, true);
+  if (config.selfHosted) return callback(null, true);
+  if (!isProd) return callback(null, true);
+  let host;
+  try { host = new URL(origin).hostname; } catch { return callback(null, false); }
+  const allowed = allowedHostsProd.some(h => host === h || host.endsWith('.' + h));
+  if (allowed) return callback(null, true);
+  callback(null, false);
+}
+
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, server-to-server, kiosk iframes)
-    if (!origin) return callback(null, true);
-    // Allow all origins - auth is handled by JWT, not CORS
-    // Devices, kiosks, and web players need cross-origin access
-    callback(null, true);
-  },
+  origin: corsOriginCheck,
   credentials: true,
 }));
 // Stripe webhook needs raw body (before express.json parses it)
