@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const { OAuth2Client } = require('google-auth-library');
 const { db } = require('../db/database');
 const { generateToken, requireAuth, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
+const { logActivity } = require('../services/activity');
 const config = require('../config');
 
 function logFailedLogin(email, ip, reason) {
@@ -300,6 +301,54 @@ router.put('/users/:id/role', requireAuth, requireSuperAdmin, (req, res) => {
   if (!['user', 'admin', 'superadmin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
   if (req.params.id === req.user.id && role !== 'superadmin') return res.status(400).json({ error: 'Cannot demote yourself' });
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, req.params.id);
+  res.json({ success: true });
+});
+
+// Admin password reset for another user.
+// Superadmins: can reset any local user. Admins: can reset members of teams
+// they own (and never a superadmin). Self-reset routes through PUT /me with
+// current_password — this endpoint is the override path.
+router.put('/users/:id/password', requireAuth, requireAdmin, (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+  if (req.params.id === req.user.id) {
+    return res.status(400).json({ error: 'Use Settings > Change Password for your own account' });
+  }
+  const target = db.prepare('SELECT id, email, role, auth_provider FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  if (target.auth_provider !== 'local') {
+    return res.status(400).json({ error: `User signs in via ${target.auth_provider} — password reset does not apply` });
+  }
+
+  if (req.user.role !== 'superadmin') {
+    // Admin path: must own a team that includes the target, and target must
+    // be a regular user (cannot reset another admin's or a superadmin's
+    // password — that would be a lateral-takeover vector).
+    if (target.role !== 'user') {
+      return res.status(403).json({ error: 'Admins can only reset passwords for regular users' });
+    }
+    const sharedOwnedTeam = db.prepare(`
+      SELECT 1 FROM team_members tm_admin
+      JOIN team_members tm_target ON tm_admin.team_id = tm_target.team_id
+      WHERE tm_admin.user_id = ? AND tm_admin.role = 'owner'
+        AND tm_target.user_id = ?
+      LIMIT 1
+    `).get(req.user.id, req.params.id);
+    if (!sharedOwnedTeam) {
+      return res.status(403).json({ error: 'You can only reset passwords for members of teams you own' });
+    }
+  }
+
+  const hash = bcrypt.hashSync(password, 10);
+  db.prepare("UPDATE users SET password_hash = ?, updated_at = strftime('%s','now') WHERE id = ?")
+    .run(hash, req.params.id);
+
+  // Explicit audit entry — the generic activity logger captures the route
+  // and target id, but a labeled detail string makes the audit log readable.
+  // Never include the password; just who reset whose password.
+  logActivity(req.user.id, 'password_reset_for_user', `target: ${target.email}`, null, req.ip);
   res.json({ success: true });
 });
 

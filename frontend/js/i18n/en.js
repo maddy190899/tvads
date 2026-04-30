@@ -467,6 +467,9 @@ export default {
   'settings.user.confirm': 'Confirm?',
   'settings.user.count_one': '1 user registered',
   'settings.user.count_other': '{n} users registered',
+  'settings.user.reset_password': 'Reset Password',
+  'settings.user.prompt_reset_password': 'Enter a new password for {email} (minimum 8 characters):',
+  'settings.toast.password_reset_for_user': 'Password reset',
 
   // Widgets
   'widget.title': 'Widgets',
@@ -804,6 +807,10 @@ export default {
   'admin.toast.role_updated': 'Role updated',
   'admin.toast.plan_updated': 'Plan updated',
   'admin.toast.user_removed': 'User removed',
+  'admin.reset_password': 'Reset Password',
+  'admin.prompt_reset_password': 'Enter a new password for {email} (minimum 8 characters):',
+  'admin.toast.password_min_8': 'Password must be at least 8 characters',
+  'admin.toast.password_reset': 'Password reset',
 
   // Schedule
   'schedule.title': 'Schedule',

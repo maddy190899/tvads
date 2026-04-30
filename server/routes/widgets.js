@@ -57,12 +57,35 @@ function safeUrl(url) {
   } catch { return 'about:blank'; }
 }
 
-// List widgets
+// List widgets.
+// Visibility model:
+//   superadmin: all widgets
+//   admin: own + public (null owner) + widgets owned by members of teams
+//          this admin owns (matches /auth/users visibility)
+//   user:  own + public (null owner)
 router.get('/', (req, res) => {
-  const isAdmin = req.user.role === 'superadmin';
+  if (req.user.role === 'superadmin') {
+    const widgets = db.prepare('SELECT * FROM widgets ORDER BY created_at DESC').all();
+    return res.json(widgets);
+  }
+  if (req.user.role === 'admin') {
+    const widgets = db.prepare(`
+      SELECT DISTINCT w.* FROM widgets w
+      LEFT JOIN team_members tm_target ON w.user_id = tm_target.user_id
+      LEFT JOIN team_members tm_admin
+             ON tm_admin.team_id = tm_target.team_id
+            AND tm_admin.user_id = ?
+            AND tm_admin.role = 'owner'
+      WHERE w.user_id = ?
+         OR w.user_id IS NULL
+         OR tm_admin.team_id IS NOT NULL
+      ORDER BY w.created_at DESC
+    `).all(req.user.id, req.user.id);
+    return res.json(widgets);
+  }
   const widgets = db.prepare(
-    `SELECT * FROM widgets ${isAdmin ? '' : 'WHERE user_id = ? OR user_id IS NULL'} ORDER BY created_at DESC`
-  ).all(...(isAdmin ? [] : [req.user.id]));
+    'SELECT * FROM widgets WHERE user_id = ? OR user_id IS NULL ORDER BY created_at DESC'
+  ).all(req.user.id);
   res.json(widgets);
 });
 

@@ -439,6 +439,9 @@ export default {
   'settings.user.confirm': '¿Confirmar?',
   'settings.user.count_one': '1 usuario registrado',
   'settings.user.count_other': '{n} usuarios registrados',
+  'settings.user.reset_password': 'Restablecer contraseña',
+  'settings.user.prompt_reset_password': 'Ingresa una nueva contraseña para {email} (mínimo 8 caracteres):',
+  'settings.toast.password_reset_for_user': 'Contraseña restablecida',
 
   // Widgets
   'widget.title': 'Widgets',
@@ -767,6 +770,10 @@ export default {
   'admin.toast.role_updated': 'Rol actualizado',
   'admin.toast.plan_updated': 'Plan actualizado',
   'admin.toast.user_removed': 'Usuario eliminado',
+  'admin.reset_password': 'Restablecer contraseña',
+  'admin.prompt_reset_password': 'Ingresa una nueva contraseña para {email} (mínimo 8 caracteres):',
+  'admin.toast.password_min_8': 'La contraseña debe tener al menos 8 caracteres',
+  'admin.toast.password_reset': 'Contraseña restablecida',
 
   // Schedule
   'schedule.title': 'Horario',

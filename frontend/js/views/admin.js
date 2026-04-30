@@ -44,6 +44,7 @@ async function loadUsers() {
   const el = document.getElementById('allUsersTable');
   try {
     const [users, plans] = await Promise.all([API('/auth/users'), fetch('/api/subscription/plans').then(r => r.json())]);
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
     el.innerHTML = `
       <div class="table-wrap">
@@ -74,7 +75,8 @@ async function loadUsers() {
                   ${plans.map(p => `<option value="${p.id}" ${u.plan_id === p.id ? 'selected' : ''}>${p.display_name}</option>`).join('')}
                 </select>
               </td>
-              <td style="padding:8px">
+              <td style="padding:8px;white-space:nowrap">
+                ${u.auth_provider === 'local' && u.id !== currentUser.id ? `<button class="btn btn-secondary btn-sm" data-reset-pw-user="${u.id}" data-user-email="${u.email}" style="margin-right:4px">${t('admin.reset_password')}</button>` : ''}
                 ${u.role !== 'superadmin' ? `<button class="btn btn-danger btn-sm" data-delete-user="${u.id}">${t('admin.remove')}</button>` : `<span style="color:var(--text-muted);font-size:11px">${t('admin.owner')}</span>`}
               </td>
             </tr>
@@ -100,6 +102,20 @@ async function loadUsers() {
           await API('/subscription/assign', { method: 'POST', body: JSON.stringify({ user_id: select.dataset.planUser, plan_id: select.value }) });
           showToast(t('admin.toast.plan_updated'), 'success');
         } catch (err) { showToast(err.message, 'error'); loadUsers(); }
+      };
+    });
+
+    // Reset password handlers
+    el.querySelectorAll('[data-reset-pw-user]').forEach(btn => {
+      btn.onclick = async () => {
+        const email = btn.dataset.userEmail;
+        const pw = prompt(t('admin.prompt_reset_password', { email }));
+        if (pw === null) return;
+        if (pw.length < 8) { showToast(t('admin.toast.password_min_8'), 'error'); return; }
+        try {
+          await api.resetUserPassword(btn.dataset.resetPwUser, pw);
+          showToast(t('admin.toast.password_reset'), 'success');
+        } catch (err) { showToast(err.message, 'error'); }
       };
     });
 

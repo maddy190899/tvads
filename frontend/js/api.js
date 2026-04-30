@@ -153,6 +153,10 @@ export const api = {
   // Admin - Users
   getUsers: () => request('/auth/users'),
   deleteUser: (id) => request(`/auth/users/${id}`, { method: 'DELETE' }),
+  resetUserPassword: (id, password) => request(`/auth/users/${id}/password`, {
+    method: 'PUT',
+    body: JSON.stringify({ password }),
+  }),
   assignPlan: (user_id, plan_id) => request('/subscription/assign', {
     method: 'POST',
     body: JSON.stringify({ user_id, plan_id })

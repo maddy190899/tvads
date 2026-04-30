@@ -440,6 +440,9 @@ export default {
   'settings.user.confirm': 'Confirmer ?',
   'settings.user.count_one': '1 utilisateur inscrit',
   'settings.user.count_other': '{n} utilisateurs inscrits',
+  'settings.user.reset_password': 'Réinitialiser le mot de passe',
+  'settings.user.prompt_reset_password': 'Saisissez un nouveau mot de passe pour {email} (8 caractères minimum) :',
+  'settings.toast.password_reset_for_user': 'Mot de passe réinitialisé',
 
   // Widgets
   'widget.title': 'Widgets',
@@ -768,6 +771,10 @@ export default {
   'admin.toast.role_updated': 'Rôle mis à jour',
   'admin.toast.plan_updated': 'Plan mis à jour',
   'admin.toast.user_removed': 'Utilisateur retiré',
+  'admin.reset_password': 'Réinitialiser le mot de passe',
+  'admin.prompt_reset_password': 'Saisissez un nouveau mot de passe pour {email} (8 caractères minimum) :',
+  'admin.toast.password_min_8': 'Le mot de passe doit comporter au moins 8 caractères',
+  'admin.toast.password_reset': 'Mot de passe réinitialisé',
 
   // Schedule
   'schedule.title': 'Calendrier',

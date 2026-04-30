@@ -207,6 +207,10 @@ function rateLimit(windowMs, maxRequests) {
 // Auth routes (public, rate limited)
 app.use('/api/auth/login', rateLimit(60000, 10)); // 10 attempts per minute
 app.use('/api/auth/register', rateLimit(60000, 5)); // 5 registrations per minute
+// Admin password-reset endpoint: even if an admin's session is compromised,
+// cap the blast radius to 20 resets/min/IP. Express matches the longest
+// path prefix first, so this fires before /api/auth catches the request.
+app.use('/api/auth/users', rateLimit(60000, 20));
 app.use('/api/auth', require('./routes/auth'));
 // Rate limit pairing to prevent brute force (5 attempts per minute per IP)
 app.use('/api/provision/pair', rateLimit(60000, 5));

@@ -430,7 +430,8 @@ async function loadUsers() {
                   ${plans.map(p => `<option value="${p.id}" ${u.plan_id === p.id ? 'selected' : ''}>${p.display_name}</option>`).join('')}
                 </select>
               </td>
-              <td style="padding:10px 12px">
+              <td style="padding:10px 12px;white-space:nowrap">
+                ${u.auth_provider === 'local' && u.id !== currentUser.id ? `<button class="btn btn-secondary btn-sm reset-user-pw-btn" data-user-id="${u.id}" data-user-email="${u.email}" style="margin-right:4px">${t('settings.user.reset_password')}</button>` : ''}
                 ${u.id !== currentUser.id ? `<button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${u.id}">${t('settings.user.remove')}</button>` : `<span style="color:var(--text-muted);font-size:11px">${t('settings.user.you')}</span>`}
               </td>
             </tr>
@@ -452,6 +453,22 @@ async function loadUsers() {
         } catch (err) {
           showToast(err.message, 'error');
           loadUsers(); // Revert
+        }
+      });
+    });
+
+    // Reset password handlers
+    el.querySelectorAll('.reset-user-pw-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const email = btn.dataset.userEmail;
+        const pw = prompt(t('settings.user.prompt_reset_password', { email }));
+        if (pw === null) return;
+        if (pw.length < 8) { showToast(t('settings.toast.new_password_min_8'), 'error'); return; }
+        try {
+          await api.resetUserPassword(btn.dataset.userId, pw);
+          showToast(t('settings.toast.password_reset_for_user'), 'success');
+        } catch (err) {
+          showToast(err.message, 'error');
         }
       });
     });
