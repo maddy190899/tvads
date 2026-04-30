@@ -2,6 +2,7 @@ import { api } from '../api.js';
 import { on, off, requestScreenshot, startRemote, stopRemote, sendTouch, sendKey, sendCommand } from '../socket.js';
 import { showToast } from '../components/toast.js';
 import { esc } from '../utils.js';
+import { t, tn } from '../i18n.js';
 
 let currentDevice = null;
 let statusHandler = null;
@@ -33,10 +34,10 @@ export function render(container, deviceId) {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
         </svg>
-        Back to Displays
+        ${t('device.back')}
       </a>
       <div id="deviceContent">
-        <div class="empty-state"><h3>Loading...</h3></div>
+        <div class="empty-state"><h3>${t('common.loading')}</h3></div>
       </div>
     </div>
   `;
@@ -94,7 +95,7 @@ export function render(container, deviceId) {
     if (data.device_id !== deviceId) return;
     const el = document.getElementById('nowPlayingInfo');
     if (el && data.current_content_id) {
-      el.textContent = `Playing: ${data.current_content_id}`;
+      el.textContent = t('device.now_playing_id', { id: data.current_content_id });
     }
   };
 
@@ -115,26 +116,26 @@ async function loadDevice(deviceId, activeTab = null) {
         <div class="device-header-left">
           <h1 id="deviceName">${device.name}</h1>
           <span class="device-status-badge ${device.status}">${device.status}</span>
-          ${device.owner_name || device.owner_email ? `<span style="font-size:12px;color:var(--text-muted)">Owner: ${device.owner_name || device.owner_email}</span>` : ''}
+          ${device.owner_name || device.owner_email ? `<span style="font-size:12px;color:var(--text-muted)">${t('device.owner_label', { owner: device.owner_name || device.owner_email })}</span>` : ''}
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" id="renameBtn">Rename</button>
+          <button class="btn btn-secondary btn-sm" id="renameBtn">${t('device.rename')}</button>
           <button class="btn btn-secondary btn-sm" id="screenshotBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
               <polyline points="21 15 16 10 5 21"/>
             </svg>
-            Screenshot
+            ${t('device.screenshot_btn')}
           </button>
-          <button class="btn btn-danger btn-sm" id="deleteDeviceBtn">Remove</button>
+          <button class="btn btn-danger btn-sm" id="deleteDeviceBtn">${t('device.remove')}</button>
         </div>
       </div>
 
       <div class="tabs">
-        <div class="tab active" data-tab="nowplaying">Now Playing <span class="help-tip" data-tip="Live screenshot of what's currently displaying on this device.">?</span></div>
-        <div class="tab" data-tab="playlist">Playlist <span class="help-tip" data-tip="Content assigned to this device. Drag items to reorder. Add media, widgets, or kiosk pages.">?</span></div>
-        <div class="tab" data-tab="info">Device Info <span class="help-tip" data-tip="Hardware telemetry, orientation settings, notes, and device controls.">?</span></div>
-        <div class="tab" data-tab="remote">Remote Control <span class="help-tip" data-tip="View the device screen in real-time and send key presses. Works on Android APK and web player.">?</span></div>
+        <div class="tab active" data-tab="nowplaying">${t('device.tab.now_playing')} <span class="help-tip" data-tip="${t('device.tab.now_playing_tip')}">?</span></div>
+        <div class="tab" data-tab="playlist">${t('device.tab.playlist')} <span class="help-tip" data-tip="${t('device.tab.playlist_tip')}">?</span></div>
+        <div class="tab" data-tab="info">${t('device.tab.info')} <span class="help-tip" data-tip="${t('device.tab.info_tip')}">?</span></div>
+        <div class="tab" data-tab="remote">${t('device.tab.remote')} <span class="help-tip" data-tip="${t('device.tab.remote_tip')}">?</span></div>
       </div>
 
       <!-- Now Playing Tab -->
@@ -148,12 +149,12 @@ async function loadDevice(deviceId, activeTab = null) {
                   <line x1="8" y1="21" x2="16" y2="21"/>
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
-                <span>No screenshot available. Click "Screenshot" to capture one.</span>
+                <span>${t('device.no_screenshot')}</span>
               </div>`
           }
         </div>
         <p id="nowPlayingInfo" style="color:var(--text-secondary);font-size:13px;">
-          ${device.assignments?.length ? `${device.assignments.length} item(s) in playlist` : 'No content assigned'}
+          ${device.assignments?.length ? tn('device.playlist_count', device.assignments.length) : t('device.no_content_assigned')}
         </p>
       </div>
 
@@ -164,13 +165,13 @@ async function loadDevice(deviceId, activeTab = null) {
           <div style="display:flex;align-items:center;gap:10px;color:#fbbf24">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <div>
-              <div style="font-weight:600;font-size:14px">Unpublished changes</div>
-              <div style="font-size:12px;color:#fcd34d;opacity:0.85">${device.playlist_has_published ? 'Devices are still showing the last published version.' : 'This playlist has never been published. Devices will show nothing until you publish.'}</div>
+              <div style="font-weight:600;font-size:14px">${t('device.draft.banner_title')}</div>
+              <div style="font-size:12px;color:#fcd34d;opacity:0.85">${device.playlist_has_published ? t('device.draft.devices_showing_published') : t('device.draft.never_published')}</div>
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-shrink:0">
-            ${device.playlist_has_published ? '<button class="btn btn-secondary btn-sm" id="deviceDiscardDraftBtn" style="color:#fbbf24;border-color:#92400e">Discard</button>' : ''}
-            <button class="btn btn-sm" id="devicePublishBtn" style="background:#f59e0b;color:#000;font-weight:600;border:none">Publish</button>
+            ${device.playlist_has_published ? `<button class="btn btn-secondary btn-sm" id="deviceDiscardDraftBtn" style="color:#fbbf24;border-color:#92400e">${t('device.draft.discard')}</button>` : ''}
+            <button class="btn btn-sm" id="devicePublishBtn" style="background:#f59e0b;color:#000;font-weight:600;border:none">${t('device.draft.publish')}</button>
           </div>
         </div>
         ` : ''}
@@ -180,28 +181,28 @@ async function loadDevice(deviceId, activeTab = null) {
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
           </svg>
           <div style="flex:1">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Screen Layout</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${t('device.layout.label')}</div>
             <select id="deviceLayoutSelect" class="input" style="background:var(--bg-input);padding:4px 8px;font-size:13px">
-              <option value="">Fullscreen (default)</option>
+              <option value="">${t('device.layout.fullscreen_default')}</option>
             </select>
           </div>
-          <button class="btn btn-secondary btn-sm" id="applyLayoutBtn">Apply</button>
+          <button class="btn btn-secondary btn-sm" id="applyLayoutBtn">${t('device.layout.apply')}</button>
         </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:12px">
-            <h3 style="font-size:16px">Playlist</h3>
+            <h3 style="font-size:16px">${t('device.playlist.label')}</h3>
             <select class="input" id="playlistPicker" style="font-size:12px;padding:4px 8px;width:200px">
-              <option value="">No playlist</option>
+              <option value="">${t('device.playlist.no_playlist')}</option>
             </select>
           </div>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-secondary btn-sm" id="copyPlaylistBtn">Copy To...</button>
+            <button class="btn btn-secondary btn-sm" id="copyPlaylistBtn">${t('device.playlist.copy_to_btn')}</button>
             <button class="btn btn-primary btn-sm" id="addContentBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
-            Add Content
+            ${t('device.playlist.add_content_btn')}
           </button>
           </div>
         </div>
@@ -214,16 +215,16 @@ async function loadDevice(deviceId, activeTab = null) {
       <div class="tab-content" id="tab-info">
         <div class="info-grid">
           <div class="info-card">
-            <div class="info-card-label">Status</div>
+            <div class="info-card-label">${t('device.info.status')}</div>
             <div class="info-card-value" style="color:var(--${device.status === 'online' ? 'success' : 'danger'})">${device.status}</div>
           </div>
           <div class="info-card">
-            <div class="info-card-label">IP Address</div>
+            <div class="info-card-label">${t('device.info.ip_address')}</div>
             <div class="info-card-value small">${device.ip_address || '--'}</div>
           </div>
           ${device.android_version && !device.android_version.startsWith('Web/') ? `
           <div class="info-card">
-            <div class="info-card-label">Battery</div>
+            <div class="info-card-label">${t('device.info.battery')}</div>
             <div class="info-card-value" id="telBattery">${latestTelemetry.battery_level != null ? latestTelemetry.battery_level + '%' : '--'}</div>
             ${latestTelemetry.battery_level != null ? `
             <div class="progress-bar">
@@ -232,8 +233,8 @@ async function loadDevice(deviceId, activeTab = null) {
             </div>` : ''}
           </div>
           <div class="info-card">
-            <div class="info-card-label">Storage</div>
-            <div class="info-card-value small" id="telStorage">${latestTelemetry.storage_free_mb ? formatBytes(latestTelemetry.storage_free_mb) + ' free' : '--'}</div>
+            <div class="info-card-label">${t('device.info.storage')}</div>
+            <div class="info-card-value small" id="telStorage">${latestTelemetry.storage_free_mb ? t('device.info.size_free', { size: formatBytes(latestTelemetry.storage_free_mb) }) : '--'}</div>
             ${latestTelemetry.storage_total_mb ? `
             <div class="progress-bar">
               <div class="progress-bar-fill ${((latestTelemetry.storage_total_mb - latestTelemetry.storage_free_mb) / latestTelemetry.storage_total_mb) < 0.8 ? 'success' : 'warning'}"
@@ -242,42 +243,42 @@ async function loadDevice(deviceId, activeTab = null) {
           </div>
           ` : `
           <div class="info-card">
-            <div class="info-card-label">Player Type</div>
-            <div class="info-card-value small">Web Player</div>
+            <div class="info-card-label">${t('device.info.player_type')}</div>
+            <div class="info-card-value small">${t('device.info.web_player')}</div>
           </div>
           `}
           ${device.android_version && !device.android_version.startsWith('Web/') ? `
           <div class="info-card">
-            <div class="info-card-label">WiFi</div>
+            <div class="info-card-label">${t('device.info.wifi')}</div>
             <div class="info-card-value small" id="telWifi">${latestTelemetry.wifi_ssid || '--'}</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px" id="telRssi">${latestTelemetry.wifi_rssi ? latestTelemetry.wifi_rssi + ' dBm' : ''}</div>
           </div>
           ` : ''}
           <div class="info-card">
-            <div class="info-card-label">Uptime</div>
+            <div class="info-card-label">${t('device.info.uptime')}</div>
             <div class="info-card-value small" id="telUptime">${formatUptime(latestTelemetry.uptime_seconds)}</div>
           </div>
           ${device.android_version && !device.android_version.startsWith('Web/') ? `
           <div class="info-card">
-            <div class="info-card-label">Android Version</div>
+            <div class="info-card-label">${t('device.info.android_version')}</div>
             <div class="info-card-value small">${device.android_version}</div>
           </div>
           <div class="info-card">
-            <div class="info-card-label">App Version</div>
+            <div class="info-card-label">${t('device.info.app_version')}</div>
             <div class="info-card-value small">${device.app_version || '--'}</div>
           </div>
           ` : ''}
           <div class="info-card">
-            <div class="info-card-label">Screen Resolution</div>
+            <div class="info-card-label">${t('device.info.screen_resolution')}</div>
             <div class="info-card-value small">${device.screen_width && device.screen_height ? device.screen_width + 'x' + device.screen_height : '--'}</div>
           </div>
           ${device.android_version && !device.android_version.startsWith('Web/') ? `
           <div class="info-card">
-            <div class="info-card-label">RAM</div>
-            <div class="info-card-value small" id="telRam">${latestTelemetry.ram_free_mb ? formatBytes(latestTelemetry.ram_free_mb) + ' free' : '--'}</div>
+            <div class="info-card-label">${t('device.info.ram')}</div>
+            <div class="info-card-value small" id="telRam">${latestTelemetry.ram_free_mb ? t('device.info.size_free', { size: formatBytes(latestTelemetry.ram_free_mb) }) : '--'}</div>
           </div>
           <div class="info-card">
-            <div class="info-card-label">CPU Usage</div>
+            <div class="info-card-label">${t('device.info.cpu_usage')}</div>
             <div class="info-card-value small" id="telCpu">${latestTelemetry.cpu_usage != null ? latestTelemetry.cpu_usage.toFixed(1) + '%' : '--'}</div>
           </div>
           ` : ''}
@@ -285,16 +286,16 @@ async function loadDevice(deviceId, activeTab = null) {
 
         <!-- Uptime Timeline (24h) -->
         <div style="margin-top:20px">
-          <h4 style="font-size:13px;margin-bottom:8px">Uptime Timeline (Last 24 Hours)</h4>
+          <h4 style="font-size:13px;margin-bottom:8px">${t('device.timeline.title')}</h4>
           <div id="uptimeTimeline" style="display:flex;height:32px;border-radius:4px;overflow:hidden;border:1px solid var(--border);background:var(--bg-primary)"></div>
           <div style="display:flex;justify-content:space-between;margin-top:4px">
-            <span style="font-size:10px;color:var(--text-muted)">24h ago</span>
-            <span style="font-size:10px;color:var(--text-muted)">Now</span>
+            <span style="font-size:10px;color:var(--text-muted)">${t('device.timeline.h24_ago')}</span>
+            <span style="font-size:10px;color:var(--text-muted)">${t('device.timeline.now')}</span>
           </div>
           <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--text-muted)">
-            <span><span style="display:inline-block;width:10px;height:10px;background:var(--success);border-radius:2px;vertical-align:-1px"></span> Online</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:var(--danger);border-radius:2px;vertical-align:-1px"></span> Offline</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:2px;vertical-align:-1px"></span> No data</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--success);border-radius:2px;vertical-align:-1px"></span> ${t('device.timeline.online')}</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--danger);border-radius:2px;vertical-align:-1px"></span> ${t('device.timeline.offline')}</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:2px;vertical-align:-1px"></span> ${t('device.timeline.no_data')}</span>
             <span id="uptimePercent" style="margin-left:auto;font-weight:600"></span>
           </div>
         </div>
@@ -302,63 +303,63 @@ async function loadDevice(deviceId, activeTab = null) {
         <div style="margin-top:20px">
           <div style="display:flex;gap:12px;margin-bottom:12px">
             <div class="form-group" style="flex:1;margin:0">
-              <label>Orientation / Rotation</label>
+              <label>${t('device.form.orientation_label')}</label>
               <select id="deviceOrientation" class="input" style="background:var(--bg-input)">
-                <option value="landscape" ${'landscape' === (device.orientation || 'landscape') ? 'selected' : ''}>Landscape (0°)</option>
-                <option value="portrait" ${'portrait' === device.orientation ? 'selected' : ''}>Portrait (90° CW)</option>
-                <option value="landscape-flipped" ${'landscape-flipped' === device.orientation ? 'selected' : ''}>Landscape Flipped (180°)</option>
-                <option value="portrait-flipped" ${'portrait-flipped' === device.orientation ? 'selected' : ''}>Portrait Flipped (270° CW)</option>
+                <option value="landscape" ${'landscape' === (device.orientation || 'landscape') ? 'selected' : ''}>${t('device.form.orientation.landscape')}</option>
+                <option value="portrait" ${'portrait' === device.orientation ? 'selected' : ''}>${t('device.form.orientation.portrait')}</option>
+                <option value="landscape-flipped" ${'landscape-flipped' === device.orientation ? 'selected' : ''}>${t('device.form.orientation.landscape_flipped')}</option>
+                <option value="portrait-flipped" ${'portrait-flipped' === device.orientation ? 'selected' : ''}>${t('device.form.orientation.portrait_flipped')}</option>
               </select>
             </div>
             <div class="form-group" style="flex:1;margin:0">
-              <label>Default Content</label>
+              <label>${t('device.form.default_content_label')}</label>
               <select id="deviceDefaultContent" class="input" style="background:var(--bg-input)">
-                <option value="">None (show "Waiting...")</option>
+                <option value="">${t('device.form.default_content_none')}</option>
               </select>
             </div>
           </div>
           <div class="form-group">
-            <label>Notes</label>
-            <textarea id="deviceNotes" class="input" rows="3" placeholder="Location, setup details, etc." style="resize:vertical">${esc(device.notes || '')}</textarea>
+            <label>${t('device.form.notes_label')}</label>
+            <textarea id="deviceNotes" class="input" rows="3" placeholder="${t('device.form.notes_placeholder')}" style="resize:vertical">${esc(device.notes || '')}</textarea>
           </div>
-          <button class="btn btn-secondary btn-sm" id="saveNotesBtn">Save Settings</button>
+          <button class="btn btn-secondary btn-sm" id="saveNotesBtn">${t('device.form.save_settings')}</button>
         </div>
         <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-secondary btn-sm" id="rebootBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
             </svg>
-            Reboot Device
+            ${t('device.ctl.reboot_device')}
           </button>
           <button class="btn btn-secondary btn-sm" id="screenOffBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
             </svg>
-            Screen Off
+            ${t('device.ctl.screen_off')}
           </button>
           <button class="btn btn-secondary btn-sm" id="screenOnBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </svg>
-            Screen On
+            ${t('device.ctl.screen_on')}
           </button>
           <button class="btn btn-secondary btn-sm" id="launchAppBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="5 3 19 12 5 21 5 3"/>
             </svg>
-            Launch Player
+            ${t('device.ctl.launch_player')}
           </button>
           <button class="btn btn-secondary btn-sm" id="forceUpdateBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Force Update
+            ${t('device.ctl.force_update')}
           </button>
           <button class="btn btn-danger btn-sm" id="shutdownBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
             </svg>
-            Shutdown
+            ${t('device.ctl.shutdown')}
           </button>
         </div>
       </div>
@@ -375,24 +376,24 @@ async function loadDevice(deviceId, activeTab = null) {
                   <line x1="8" y1="21" x2="16" y2="21"/>
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
-                <p style="color:var(--text-secondary)">Click "Start Remote" to begin</p>
+                <p style="color:var(--text-secondary)">${t('device.remote.start_prompt')}</p>
               </div>
             </div>
           </div>
           <div class="remote-controls">
-            <button class="btn btn-primary" id="startRemoteBtn">Start Remote</button>
-            <button class="btn btn-secondary" id="stopRemoteBtn" style="display:none">Stop Remote</button>
+            <button class="btn btn-primary" id="startRemoteBtn">${t('device.remote.start')}</button>
+            <button class="btn btn-secondary" id="stopRemoteBtn" style="display:none">${t('device.remote.stop')}</button>
             <hr style="border-color:var(--border);margin:8px 0">
             <!-- Always available -->
-            <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_VOLUME_UP')">Vol +</button>
-            <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_VOLUME_DOWN')">Vol -</button>
+            <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_VOLUME_UP')">${t('device.remote.vol_up')}</button>
+            <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_VOLUME_DOWN')">${t('device.remote.vol_down')}</button>
             <hr style="border-color:var(--border);margin:8px 0">
             <!-- System View controls (disabled until enabled) -->
             <div id="systemViewControls" style="opacity:0.4;pointer-events:none">
-              <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_HOME')">Home</button>
-              <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_BACK')">Back</button>
-              <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_APP_SWITCH')">Recents</button>
-              <button class="btn btn-danger btn-sm" onclick="window._sendKey('KEYCODE_POWER')">Power</button>
+              <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_HOME')">${t('device.remote.home')}</button>
+              <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_BACK')">${t('device.remote.back')}</button>
+              <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_APP_SWITCH')">${t('device.remote.recents')}</button>
+              <button class="btn btn-danger btn-sm" onclick="window._sendKey('KEYCODE_POWER')">${t('device.remote.power')}</button>
               <hr style="border-color:var(--border);margin:8px 0">
               <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_DPAD_UP')">&#9650;</button>
               <div style="display:flex;gap:4px">
@@ -400,19 +401,19 @@ async function loadDevice(deviceId, activeTab = null) {
                 <button class="btn btn-secondary btn-sm" style="flex:1" onclick="window._sendKey('KEYCODE_DPAD_RIGHT')">&#9654;</button>
               </div>
               <button class="btn btn-secondary btn-sm" onclick="window._sendKey('KEYCODE_DPAD_DOWN')">&#9660;</button>
-              <button class="btn btn-primary btn-sm" onclick="window._sendKey('KEYCODE_DPAD_CENTER')">OK</button>
+              <button class="btn btn-primary btn-sm" onclick="window._sendKey('KEYCODE_DPAD_CENTER')">${t('device.remote.ok')}</button>
               <hr style="border-color:var(--border);margin:8px 0">
-              <button class="btn btn-secondary btn-sm" onclick="window._sendCmd('settings')">Settings</button>
+              <button class="btn btn-secondary btn-sm" onclick="window._sendCmd('settings')">${t('device.remote.settings')}</button>
               <hr style="border-color:var(--border);margin:8px 0">
               <div style="display:flex;gap:4px">
-                <button class="btn btn-secondary btn-sm" style="flex:1" onclick="window._sendCmd('screen_off')">Scrn Off</button>
-                <button class="btn btn-secondary btn-sm" style="flex:1" onclick="window._sendCmd('screen_on')">Scrn On</button>
+                <button class="btn btn-secondary btn-sm" style="flex:1" onclick="window._sendCmd('screen_off')">${t('device.remote.scrn_off')}</button>
+                <button class="btn btn-secondary btn-sm" style="flex:1" onclick="window._sendCmd('screen_on')">${t('device.remote.scrn_on')}</button>
               </div>
             </div>
-            <button class="btn btn-primary btn-sm" id="enableSystemCaptureBtn" onclick="window._enableSystemView()" title="Prompts the device user to allow full screen capture - enables remote view of home screen, settings, and other apps" style="margin-top:8px">
-              Enable System View
+            <button class="btn btn-primary btn-sm" id="enableSystemCaptureBtn" onclick="window._enableSystemView()" title="${t('device.remote.system_view_tooltip')}" style="margin-top:8px">
+              ${t('device.remote.enable_system_view')}
             </button>
-            <span id="systemViewHint" style="font-size:10px;color:var(--text-muted);line-height:1.2;display:block;margin-top:4px">Requires one-time approval on device</span>
+            <span id="systemViewHint" style="font-size:10px;color:var(--text-muted);line-height:1.2;display:block;margin-top:4px">${t('device.remote.system_view_hint')}</span>
           </div>
         </div>
       </div>
@@ -431,13 +432,13 @@ async function loadDevice(deviceId, activeTab = null) {
       // Unlock the system controls after a short delay (user needs to tap "Start now" on device)
       const btn = document.getElementById('enableSystemCaptureBtn');
       const hint = document.getElementById('systemViewHint');
-      if (btn) { btn.textContent = 'Waiting for device approval...'; btn.disabled = true; }
+      if (btn) { btn.textContent = t('device.remote.waiting_for_approval'); btn.disabled = true; }
       // Check periodically if the device granted it (we'll know because screenshots keep coming even after Home)
       setTimeout(() => {
         const controls = document.getElementById('systemViewControls');
         if (controls) { controls.style.opacity = '1'; controls.style.pointerEvents = 'auto'; }
-        if (btn) { btn.textContent = 'System View Enabled'; btn.style.background = 'var(--success)'; }
-        if (hint) hint.textContent = 'Navigation and system controls unlocked';
+        if (btn) { btn.textContent = t('device.remote.system_view_enabled'); btn.style.background = 'var(--success)'; }
+        if (hint) hint.textContent = t('device.remote.unlocked_hint');
       }, 5000);
     };
 
@@ -465,13 +466,13 @@ async function loadDevice(deviceId, activeTab = null) {
     }
 
   } catch (err) {
-    contentEl.innerHTML = `<div class="empty-state"><h3>Failed to load device</h3><p>${esc(err.message)}</p></div>`;
+    contentEl.innerHTML = `<div class="empty-state"><h3>${t('device.failed_load')}</h3><p>${esc(err.message)}</p></div>`;
   }
 }
 
 function renderPlaylist(assignments) {
   if (!assignments.length) {
-    return `<div class="empty-state"><h3>No content assigned</h3><p>Add content from your library to this display's playlist.</p></div>`;
+    return `<div class="empty-state"><h3>${t('device.playlist.empty_title')}</h3><p>${t('device.playlist.empty_desc')}</p></div>`;
   }
   return assignments.map((a, i) => `
     <div class="playlist-item" data-assignment-id="${a.id}" draggable="true" data-sort="${i}">
@@ -493,10 +494,10 @@ function renderPlaylist(assignments) {
             </div>`
       }
       <div class="playlist-item-info">
-        <div class="playlist-item-name">${esc(a.filename || a.widget_name || 'Unknown')}</div>
+        <div class="playlist-item-name">${esc(a.filename || a.widget_name || t('common.unknown'))}</div>
         <div class="playlist-item-meta">
-          ${a.widget_id && !a.content_id ? `Widget (${a.widget_type || 'custom'})` : a.mime_type === 'video/youtube' ? 'YouTube' : a.mime_type?.startsWith('video/') ? 'Video' : 'Image'}
-          ${a.zone_id ? ` &middot; <span style="color:var(--accent)">Zone: ${a.zone_id.slice(0,8)}</span>` : ''}
+          ${a.widget_id && !a.content_id ? t('device.pl_item.widget_with_type', { type: a.widget_type || 'custom' }) : a.mime_type === 'video/youtube' ? t('device.pl_item.youtube') : a.mime_type?.startsWith('video/') ? t('device.pl_item.video') : t('device.pl_item.image')}
+          ${a.zone_id ? ` &middot; <span style="color:var(--accent)">${t('device.pl_item.zone_label', { id: a.zone_id.slice(0,8) })}</span>` : ''}
           ${a.content_duration ? ` &middot; ${Math.floor(a.content_duration / 60)}:${String(Math.floor(a.content_duration % 60)).padStart(2, '0')}` : ''}
           ${!a.content_duration && !a.mime_type?.startsWith('video/') && a.duration_sec ? ` &middot; ${a.duration_sec}s` : ''}
           ${a.schedule_start ? ` &middot; ${a.schedule_start}-${a.schedule_end}` : ''}
@@ -504,15 +505,15 @@ function renderPlaylist(assignments) {
       </div>
       <div class="playlist-item-actions" style="display:flex;align-items:center;gap:4px">
         <select class="input zone-select" data-assignment-id="${a.id}" style="width:100px;font-size:11px;padding:2px 4px;background:var(--bg-input);display:none">
-          <option value="">No zone</option>
+          <option value="">${t('device.pl_item.no_zone')}</option>
         </select>
-        <button class="btn-icon mute-toggle" data-mute-assignment="${a.id}" data-muted="${a.muted ? '1' : '0'}" title="${a.muted ? 'Unmute' : 'Mute'}" style="color:${a.muted ? 'var(--danger)' : 'var(--text-muted)'}">
+        <button class="btn-icon mute-toggle" data-mute-assignment="${a.id}" data-muted="${a.muted ? '1' : '0'}" title="${a.muted ? t('device.pl_item.unmute') : t('device.pl_item.mute')}" style="color:${a.muted ? 'var(--danger)' : 'var(--text-muted)'}">
           ${a.muted
             ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
             : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>'
           }
         </button>
-        <button class="btn-icon" title="Remove" data-remove-assignment="${a.id}">
+        <button class="btn-icon" title="${t('device.pl_item.remove')}" data-remove-assignment="${a.id}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           </svg>
@@ -537,18 +538,18 @@ async function setupActions(device) {
   // Screenshot button
   document.getElementById('screenshotBtn')?.addEventListener('click', () => {
     requestScreenshot(device.id);
-    showToast('Screenshot requested', 'info');
+    showToast(t('device.toast.screenshot_requested'), 'info');
   });
 
   // Rename
   document.getElementById('renameBtn')?.addEventListener('click', async () => {
-    const name = prompt('Enter new name:', device.name);
+    const name = prompt(t('device.prompt_new_name'), device.name);
     if (name && name !== device.name) {
       try {
         await api.updateDevice(device.id, { name });
         document.getElementById('deviceName').textContent = name;
         currentDevice.name = name;
-        showToast('Display renamed', 'success');
+        showToast(t('device.toast.renamed'), 'success');
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -577,7 +578,7 @@ async function setupActions(device) {
         orientation: document.getElementById('deviceOrientation').value,
         default_content_id: document.getElementById('deviceDefaultContent').value || null,
       });
-      showToast('Settings saved', 'success');
+      showToast(t('device.toast.settings_saved'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -589,13 +590,13 @@ async function setupActions(device) {
     devicePublishBtn.addEventListener('click', async () => {
       try {
         devicePublishBtn.disabled = true;
-        devicePublishBtn.textContent = 'Publishing...';
+        devicePublishBtn.textContent = t('device.draft.publishing');
         await api.publishPlaylist(device.playlist_id);
-        showToast('Playlist published — devices updated');
+        showToast(t('device.toast.published'));
         loadDevice(device.id, 'playlist');
       } catch (err) {
         devicePublishBtn.disabled = false;
-        devicePublishBtn.textContent = 'Publish';
+        devicePublishBtn.textContent = t('device.draft.publish');
         showToast(err.message, 'error');
       }
     });
@@ -603,10 +604,10 @@ async function setupActions(device) {
   const deviceDiscardBtn = document.getElementById('deviceDiscardDraftBtn');
   if (deviceDiscardBtn && device.playlist_id) {
     deviceDiscardBtn.addEventListener('click', async () => {
-      if (!confirm('Discard all unpublished changes and revert to the last published version?')) return;
+      if (!confirm(t('device.confirm_discard_draft'))) return;
       try {
         await api.discardPlaylistDraft(device.playlist_id);
-        showToast('Draft changes discarded');
+        showToast(t('device.toast.draft_discarded'));
         loadDevice(device.id, 'playlist');
       } catch (err) {
         showToast(err.message, 'error');
@@ -621,7 +622,9 @@ async function setupActions(device) {
       playlists.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `${p.name}${p.is_auto_generated ? ' (auto)' : ''} — ${p.item_count} items`;
+        opt.textContent = p.is_auto_generated
+          ? t('device.playlist_picker.with_auto', { name: p.name, n: p.item_count })
+          : t('device.playlist_picker.with_count', { name: p.name, n: p.item_count });
         if (p.id === device.playlist_id) opt.selected = true;
         playlistPicker.appendChild(opt);
       });
@@ -638,7 +641,7 @@ async function setupActions(device) {
         const assignments = await api.getAssignments(device.id);
         document.getElementById('playlistContainer').innerHTML = renderPlaylist(assignments);
         attachRemoveHandlers(device);
-        showToast('Playlist changed');
+        showToast(t('device.toast.playlist_changed'));
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -650,12 +653,12 @@ async function setupActions(device) {
     try {
       const devices = await api.getDevices();
       const others = devices.filter(d => d.id !== device.id);
-      if (!others.length) { showToast('No other devices to copy to', 'info'); return; }
+      if (!others.length) { showToast(t('device.copy.no_other_devices'), 'info'); return; }
 
-      const targetId = prompt('Copy playlist to which device?\n\n' + others.map((d, i) => `${i + 1}. ${d.name}`).join('\n') + '\n\nEnter number:');
+      const targetId = prompt(t('device.copy.prompt', { list: others.map((d, i) => `${i + 1}. ${d.name}`).join('\n') }));
       if (!targetId) return;
       const target = others[parseInt(targetId) - 1];
-      if (!target) { showToast('Invalid selection', 'error'); return; }
+      if (!target) { showToast(t('device.copy.invalid_selection'), 'error'); return; }
 
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/assignments/device/${device.id}/copy-to/${target.id}`, {
@@ -664,7 +667,7 @@ async function setupActions(device) {
         body: JSON.stringify({ replace: false })
       });
       const data = await res.json();
-      if (res.ok) showToast(`Copied ${data.copied} items to ${target.name}`, 'success');
+      if (res.ok) showToast(t('device.copy.toast', { n: data.copied, device: target.name }), 'success');
       else showToast(data.error, 'error');
     } catch (err) { showToast(err.message, 'error'); }
   });
@@ -676,27 +679,27 @@ async function setupActions(device) {
   deleteBtn?.addEventListener('click', async () => {
     if (deleteConfirming) {
       try {
-        deleteBtn.textContent = 'Removing...';
+        deleteBtn.textContent = t('device.toast.removing');
         deleteBtn.disabled = true;
         await api.deleteDevice(device.id);
-        showToast('Display removed', 'success');
+        showToast(t('device.toast.removed'), 'success');
         window.location.hash = '/';
       } catch (err) {
         showToast(err.message, 'error');
-        deleteBtn.textContent = 'Remove';
+        deleteBtn.textContent = t('device.remove');
         deleteBtn.disabled = false;
         deleteConfirming = false;
       }
       return;
     }
     deleteConfirming = true;
-    deleteBtn.textContent = 'Click again to confirm';
+    deleteBtn.textContent = t('device.click_to_confirm');
     deleteBtn.style.background = 'var(--danger)';
     deleteBtn.style.color = 'white';
     clearTimeout(deleteTimeout);
     deleteTimeout = setTimeout(() => {
       deleteConfirming = false;
-      deleteBtn.textContent = 'Remove';
+      deleteBtn.textContent = t('device.remove');
       deleteBtn.style.background = '';
       deleteBtn.style.color = '';
     }, 3000);
@@ -709,17 +712,17 @@ async function setupActions(device) {
   rebootBtn?.addEventListener('click', () => {
     if (rebootConfirming) {
       sendCommand(device.id, 'reboot', {});
-      showToast('Reboot command sent', 'info');
+      showToast(t('device.toast.reboot_sent'), 'info');
       rebootConfirming = false;
-      rebootBtn.textContent = 'Reboot Device';
+      rebootBtn.textContent = t('device.ctl.reboot_device');
       return;
     }
     rebootConfirming = true;
-    rebootBtn.textContent = 'Click again to confirm';
+    rebootBtn.textContent = t('device.click_to_confirm');
     clearTimeout(rebootTimeout);
     rebootTimeout = setTimeout(() => {
       rebootConfirming = false;
-      rebootBtn.textContent = 'Reboot Device';
+      rebootBtn.textContent = t('device.ctl.reboot_device');
     }, 3000);
   });
 
@@ -730,19 +733,19 @@ async function setupActions(device) {
   shutdownBtn?.addEventListener('click', () => {
     if (shutdownConfirming) {
       sendCommand(device.id, 'shutdown', {});
-      showToast('Shutdown command sent', 'info');
+      showToast(t('device.toast.shutdown_sent'), 'info');
       shutdownConfirming = false;
-      shutdownBtn.textContent = 'Shutdown';
+      shutdownBtn.textContent = t('device.ctl.shutdown');
       return;
     }
     shutdownConfirming = true;
-    shutdownBtn.textContent = 'Click again to confirm';
+    shutdownBtn.textContent = t('device.click_to_confirm');
     shutdownBtn.style.background = 'var(--danger)';
     shutdownBtn.style.color = 'white';
     clearTimeout(shutdownTimeout);
     shutdownTimeout = setTimeout(() => {
       shutdownConfirming = false;
-      shutdownBtn.textContent = 'Shutdown';
+      shutdownBtn.textContent = t('device.ctl.shutdown');
       shutdownBtn.style.background = '';
       shutdownBtn.style.color = '';
     }, 3000);
@@ -751,25 +754,25 @@ async function setupActions(device) {
   // Screen Off
   document.getElementById('screenOffBtn')?.addEventListener('click', () => {
     sendCommand(device.id, 'screen_off', {});
-    showToast('Screen off command sent', 'info');
+    showToast(t('device.toast.screen_off_sent'), 'info');
   });
 
   // Screen On
   document.getElementById('screenOnBtn')?.addEventListener('click', () => {
     sendCommand(device.id, 'screen_on', {});
-    showToast('Screen on command sent', 'info');
+    showToast(t('device.toast.screen_on_sent'), 'info');
   });
 
   // Launch Player
   document.getElementById('launchAppBtn')?.addEventListener('click', () => {
     sendCommand(device.id, 'launch', {});
-    showToast('Launch command sent', 'info');
+    showToast(t('device.toast.launch_sent'), 'info');
   });
 
   // Force Update
   document.getElementById('forceUpdateBtn')?.addEventListener('click', () => {
     sendCommand(device.id, 'update', {});
-    showToast('Update check triggered', 'info');
+    showToast(t('device.toast.update_triggered'), 'info');
   });
 }
 
@@ -787,7 +790,7 @@ function setupRemote(device) {
     startBtn.style.display = 'none';
     stopBtn.style.display = '';
     overlay.style.display = 'none';
-    showToast('Remote session started', 'info');
+    showToast(t('device.toast.remote_started'), 'info');
   });
 
   stopBtn?.addEventListener('click', () => {
@@ -828,7 +831,7 @@ async function setupPlaylistActions(device) {
       layouts.filter(l => !l.is_template).forEach(l => {
         const opt = document.createElement('option');
         opt.value = l.id;
-        opt.textContent = `${l.name} (${l.zones?.length || 0} zones)`;
+        opt.textContent = t('device.layout.zones_count', { name: l.name, n: l.zones?.length || 0 });
         if (device.layout_id === l.id) opt.selected = true;
         select.appendChild(opt);
       });
@@ -836,7 +839,7 @@ async function setupPlaylistActions(device) {
       layouts.filter(l => l.is_template).forEach(l => {
         const opt = document.createElement('option');
         opt.value = l.id;
-        opt.textContent = `[Template] ${l.name} (${l.zones?.length || 0} zones)`;
+        opt.textContent = t('device.layout.template_zones_count', { name: l.name, n: l.zones?.length || 0 });
         if (device.layout_id === l.id) opt.selected = true;
         select.appendChild(opt);
       });
@@ -854,7 +857,7 @@ async function setupPlaylistActions(device) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ layout_id: layoutId || null })
       });
-      showToast(layoutId ? 'Layout applied' : 'Switched to fullscreen', 'success');
+      showToast(layoutId ? t('device.toast.layout_applied') : t('device.toast.switched_to_fullscreen'), 'success');
       // Reload the device page to show updated zone selectors, stay on playlist tab
       loadDevice(device.id, 'playlist');
     } catch (err) {
@@ -884,7 +887,7 @@ async function setupPlaylistActions(device) {
       }
 
       if (!content.length && !widgets.length && !kioskPages.length) {
-        showToast('No content, widgets, or kiosk pages yet. Create something first!', 'error');
+        showToast(t('device.assign.empty_all'), 'error');
         return;
       }
 
@@ -893,7 +896,7 @@ async function setupPlaylistActions(device) {
       modal.innerHTML = `
         <div class="modal" style="max-width:650px;width:95vw">
           <div class="modal-header">
-            <h3>Add to Playlist</h3>
+            <h3>${t('device.assign.modal_title')}</h3>
             <button class="btn-icon" id="closeAssignModal">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -903,22 +906,22 @@ async function setupPlaylistActions(device) {
           <div class="modal-body">
             ${zones.length > 0 ? `
             <div class="form-group">
-              <label>Zone</label>
+              <label>${t('device.assign.zone_label')}</label>
               <select id="assignZone" class="input" style="background:var(--bg-input)">
-                <option value="">Default (fullscreen)</option>
+                <option value="">${t('device.assign.zone_default')}</option>
                 ${zones.map(z => `<option value="${z.id}">${z.name} (${Math.round(z.width_percent)}% x ${Math.round(z.height_percent)}%)</option>`).join('')}
               </select>
             </div>
             ` : ''}
             <div class="form-group">
-              <label>Display Duration (seconds, for images/widgets)</label>
+              <label>${t('device.assign.duration_label')}</label>
               <input type="number" id="assignDuration" class="input" value="10" min="1" max="3600">
             </div>
             <!-- Tabs -->
             <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:12px">
-              <div class="assign-tab active" data-tab="media" style="padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent)">Media (${content.length})</div>
-              <div class="assign-tab" data-tab="widgets" style="padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-secondary)">Widgets (${widgets.length})</div>
-              <div class="assign-tab" data-tab="kiosk" style="padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-secondary)">Kiosk (${kioskPages.length})</div>
+              <div class="assign-tab active" data-tab="media" style="padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent)">${t('device.assign.tab.media', { n: content.length })}</div>
+              <div class="assign-tab" data-tab="widgets" style="padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-secondary)">${t('device.assign.tab.widgets', { n: widgets.length })}</div>
+              <div class="assign-tab" data-tab="kiosk" style="padding:8px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-secondary)">${t('device.assign.tab.kiosk', { n: kioskPages.length })}</div>
             </div>
             <!-- Media grid -->
             <div class="assign-content-grid" id="assignMedia">
@@ -936,7 +939,7 @@ async function setupPlaylistActions(device) {
                   }
                   <div class="assign-content-item-name">${esc(c.filename)}</div>
                 </div>
-              `).join('') || '<p style="color:var(--text-muted);padding:16px;text-align:center">No media uploaded yet</p>'}
+              `).join('') || `<p style="color:var(--text-muted);padding:16px;text-align:center">${t('device.assign.no_media')}</p>`}
             </div>
             <!-- Widgets grid -->
             <div class="assign-content-grid" id="assignWidgets" style="display:none">
@@ -949,7 +952,7 @@ async function setupPlaylistActions(device) {
                   </div>
                   <div class="assign-content-item-name">${w.name}</div>
                 </div>`;
-              }).join('') || '<p style="color:var(--text-muted);padding:16px;text-align:center">No widgets created yet. <a href="#/widgets" style="color:var(--accent)">Create one</a></p>'}
+              }).join('') || `<p style="color:var(--text-muted);padding:16px;text-align:center">${t('device.assign.no_widgets')} <a href="#/widgets" style="color:var(--accent)">${t('device.assign.create_one')}</a></p>`}
             </div>
             <!-- Kiosk grid -->
             <div class="assign-content-grid" id="assignKiosk" style="display:none">
@@ -958,12 +961,12 @@ async function setupPlaylistActions(device) {
                   <div style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:var(--bg-primary);font-size:32px">&#128433;</div>
                   <div class="assign-content-item-name">${k.name}</div>
                 </div>
-              `).join('') || '<p style="color:var(--text-muted);padding:16px;text-align:center">No kiosk pages yet. <a href="#/kiosk" style="color:var(--accent)">Create one</a></p>'}
+              `).join('') || `<p style="color:var(--text-muted);padding:16px;text-align:center">${t('device.assign.no_kiosk')} <a href="#/kiosk" style="color:var(--accent)">${t('device.assign.create_one')}</a></p>`}
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary" id="cancelAssign">Cancel</button>
-            <button class="btn btn-primary" id="confirmAssign">Add Selected</button>
+            <button class="btn btn-secondary" id="cancelAssign">${t('common.cancel')}</button>
+            <button class="btn btn-primary" id="confirmAssign">${t('device.assign.add_selected')}</button>
           </div>
         </div>
       `;
@@ -995,7 +998,7 @@ async function setupPlaylistActions(device) {
       modal.querySelector('#cancelAssign').onclick = () => modal.remove();
       modal.querySelector('#confirmAssign').onclick = async () => {
         if (!selectedId) {
-          showToast('Select something first', 'error');
+          showToast(t('device.assign.select_first'), 'error');
           return;
         }
         const duration = parseInt(modal.querySelector('#assignDuration').value) || 10;
@@ -1011,13 +1014,13 @@ async function setupPlaylistActions(device) {
             const wRes = await fetch('/api/widgets', {
               method: 'POST',
               headers: { ...headers, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ widget_type: 'webpage', name: `Kiosk: ${kioskPages.find(k => k.id === selectedId)?.name || 'Page'}`, config: { url: `${serverUrl}/api/kiosk/${selectedId}/render` } })
+              body: JSON.stringify({ widget_type: 'webpage', name: t('device.assign.kiosk_widget_name', { name: kioskPages.find(k => k.id === selectedId)?.name || 'Page' }), config: { url: `${serverUrl}/api/kiosk/${selectedId}/render` } })
             });
             const widget = await wRes.json();
             await api.addAssignment(device.id, { widget_id: widget.id, duration_sec: 0 });
           }
           modal.remove();
-          showToast('Added to playlist', 'success');
+          showToast(t('device.toast.added_to_playlist'), 'success');
           loadDevice(device.id, 'playlist');
         } catch (err) {
           showToast(err.message, 'error');
@@ -1060,7 +1063,7 @@ function attachRemoveHandlers(device) {
           select.onchange = async () => {
             try {
               await api.updateAssignment(assignmentId, { zone_id: select.value || null });
-              showToast(`Zone updated`, 'success');
+              showToast(t('device.toast.zone_updated'), 'success');
               loadDevice(device.id, 'playlist');
             } catch (err) { showToast(err.message, 'error'); }
           };
@@ -1076,7 +1079,7 @@ function attachRemoveHandlers(device) {
       const currentlyMuted = btn.dataset.muted === '1';
       try {
         await api.updateAssignment(id, { muted: !currentlyMuted });
-        showToast(currentlyMuted ? 'Unmuted' : 'Muted', 'success');
+        showToast(currentlyMuted ? t('device.toast.unmuted') : t('device.toast.muted'), 'success');
         loadDevice(device.id, 'playlist');
       } catch (err) { showToast(err.message, 'error'); }
     });
@@ -1089,7 +1092,7 @@ function attachRemoveHandlers(device) {
       const id = btn.dataset.removeAssignment;
       try {
         await api.deleteAssignment(id);
-        showToast('Content removed from playlist', 'success');
+        showToast(t('device.toast.removed_from_playlist'), 'success');
         loadDevice(device.id, 'playlist');
       } catch (err) {
         showToast(err.message, 'error');
@@ -1140,7 +1143,7 @@ function attachRemoveHandlers(device) {
 
       try {
         await api.reorderAssignments(device.id, newOrder);
-        showToast('Playlist reordered', 'success');
+        showToast(t('device.toast.playlist_reordered'), 'success');
         loadDevice(device.id, 'playlist');
       } catch (err) {
         showToast(err.message, 'error');
@@ -1193,7 +1196,11 @@ function renderUptimeTimeline(uptimeData, statusLog = []) {
   const knownSlots = slotStatus.filter(s => s !== 'unknown').length;
   const onlineSlots = slotStatus.filter(s => s === 'online').length;
   const uptimePct = knownSlots > 0 ? Math.round((onlineSlots / knownSlots) * 100) : 0;
-  if (percentEl) percentEl.textContent = `${uptimePct}% uptime (${knownSlots > 0 ? knownSlots * 15 + 'min tracked' : 'no data'})`;
+  if (percentEl) {
+    percentEl.textContent = knownSlots > 0
+      ? t('device.timeline.uptime_pct_tracked', { pct: uptimePct, n: knownSlots * 15 })
+      : t('device.timeline.uptime_pct_no_data', { pct: uptimePct });
+  }
 
   // Color map
   const colors = {
@@ -1207,7 +1214,7 @@ function renderUptimeTimeline(uptimeData, statusLog = []) {
   timeline.innerHTML = slotStatus.map((status, i) => {
     const time = new Date((dayAgo + i * slotDuration) * 1000);
     const label = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const statusLabel = status === 'unknown' ? 'No data' : status.charAt(0).toUpperCase() + status.slice(1);
+    const statusLabel = status === 'unknown' ? t('device.timeline.no_data') : status === 'online' ? t('device.timeline.online') : t('device.timeline.offline');
     return `<div style="flex:1;background:${colors[status]};opacity:${opacities[status]}" title="${label} - ${statusLabel}"></div>`;
   }).join('');
 }
@@ -1218,11 +1225,11 @@ function updateTelemetryDisplay(telemetry) {
     if (el) el.textContent = val;
   };
   if (telemetry.battery_level != null) update('telBattery', telemetry.battery_level + '%');
-  if (telemetry.storage_free_mb) update('telStorage', formatBytes(telemetry.storage_free_mb) + ' free');
+  if (telemetry.storage_free_mb) update('telStorage', t('device.info.size_free', { size: formatBytes(telemetry.storage_free_mb) }));
   if (telemetry.wifi_ssid) update('telWifi', telemetry.wifi_ssid);
   if (telemetry.wifi_rssi) update('telRssi', telemetry.wifi_rssi + ' dBm');
   if (telemetry.uptime_seconds) update('telUptime', formatUptime(telemetry.uptime_seconds));
-  if (telemetry.ram_free_mb) update('telRam', formatBytes(telemetry.ram_free_mb) + ' free');
+  if (telemetry.ram_free_mb) update('telRam', t('device.info.size_free', { size: formatBytes(telemetry.ram_free_mb) }));
   if (telemetry.cpu_usage != null) update('telCpu', telemetry.cpu_usage.toFixed(1) + '%');
 }
 

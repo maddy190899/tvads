@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { showToast } from '../components/toast.js';
-import { getLanguage, setLanguage, getAvailableLanguages } from '../i18n.js';
+import { getLanguage, setLanguage, getAvailableLanguages, t, tn } from '../i18n.js';
 import { esc } from '../utils.js';
 import { resetBranding } from '../branding.js';
 
@@ -17,118 +17,115 @@ export async function render(container) {
   container.innerHTML = `
     <div class="page-header">
       <div>
-        <h1>Settings</h1>
-        <div class="subtitle">Server configuration and setup information</div>
+        <h1>${t('settings.title')}</h1>
+        <div class="subtitle">${t('settings.subtitle')}</div>
       </div>
     </div>
 
     <div class="settings-section">
-      <h3>Account</h3>
+      <h3>${t('settings.account')}</h3>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
-        <div class="form-group"><label>Email</label><input type="email" class="input" value="${esc(user.email || '')}" disabled></div>
-        <div class="form-group"><label>Name</label><input type="text" id="acctName" class="input" value="${esc(user.name || '')}"></div>
+        <div class="form-group"><label>${t('auth.email')}</label><input type="email" class="input" value="${esc(user.email || '')}" disabled></div>
+        <div class="form-group"><label>${t('auth.name')}</label><input type="text" id="acctName" class="input" value="${esc(user.name || '')}"></div>
       </div>
-      <button class="btn btn-secondary btn-sm" id="saveAcctBtn">Save Profile</button>
+      <button class="btn btn-secondary btn-sm" id="saveAcctBtn">${t('settings.save_profile')}</button>
 
       ${user.auth_provider === 'local' ? `
       <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:16px">
-        <h4 style="font-size:14px;margin-bottom:8px">Change Password</h4>
-        <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px">Must be at least 8 characters.</p>
+        <h4 style="font-size:14px;margin-bottom:8px">${t('settings.change_password')}</h4>
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px">${t('settings.password_min_8')}</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-          <div class="form-group"><label>Current Password</label><input type="password" id="acctCurrentPw" class="input" autocomplete="current-password"></div>
-          <div class="form-group"><label>New Password</label><input type="password" id="acctNewPw" class="input" autocomplete="new-password"></div>
-          <div class="form-group"><label>Confirm New Password</label><input type="password" id="acctConfirmPw" class="input" autocomplete="new-password"></div>
+          <div class="form-group"><label>${t('settings.current_password')}</label><input type="password" id="acctCurrentPw" class="input" autocomplete="current-password"></div>
+          <div class="form-group"><label>${t('settings.new_password')}</label><input type="password" id="acctNewPw" class="input" autocomplete="new-password"></div>
+          <div class="form-group"><label>${t('settings.confirm_new_password')}</label><input type="password" id="acctConfirmPw" class="input" autocomplete="new-password"></div>
         </div>
-        <button class="btn btn-primary btn-sm" id="changePwBtn">Change Password</button>
+        <button class="btn btn-primary btn-sm" id="changePwBtn">${t('settings.change_password')}</button>
       </div>
       ` : `
-      <p style="color:var(--text-muted);font-size:12px;margin-top:16px">You sign in via <strong>${esc(user.auth_provider || 'SSO')}</strong>. Manage your password there.</p>
+      <p style="color:var(--text-muted);font-size:12px;margin-top:16px">${t('settings.sso_note', { provider: esc(user.auth_provider || 'SSO') })}</p>
       `}
     </div>
 
     ${isAdmin ? `
     <div class="settings-section">
-      <h3>License</h3>
-      <div id="licenseSection"><p style="color:var(--text-muted);font-size:13px">MIT License - all features included.</p></div>
+      <h3>${t('settings.license')}</h3>
+      <div id="licenseSection"><p style="color:var(--text-muted);font-size:13px">${t('settings.license_mit')}</p></div>
     </div>
 
-    ${isSuperAdmin ? '<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Platform admin tools are in the <a href="#/admin" style="color:var(--accent)">Admin</a> page.</p>' : ''}
+    ${isSuperAdmin ? `<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${t('settings.platform_admin_link')} <a href="#/admin" style="color:var(--accent)">${t('nav.admin')}</a> ${t('settings.platform_admin_page_suffix')}</p>` : ''}
 
     <div class="settings-section">
-      <h3>User Management</h3>
-      <div id="userManagement"><p style="color:var(--text-muted)">Loading users...</p></div>
+      <h3>${t('settings.user_management')}</h3>
+      <div id="userManagement"><p style="color:var(--text-muted)">${t('settings.loading_users')}</p></div>
     </div>
 
     <div class="settings-section" id="whiteLabelSection">
-      <h3>White Label / Branding</h3>
+      <h3>${t('settings.white_label')}</h3>
       <div id="whiteLabelForm">
-        <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px">Customize the look of your dashboard and player for your clients.</p>
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px">${t('settings.white_label_desc')}</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="form-group"><label>Brand Name</label><input type="text" id="wlBrandName" class="input" placeholder="ScreenTinker"></div>
-          <div class="form-group"><label>Logo URL</label><input type="text" id="wlLogoUrl" class="input" placeholder="https://..."></div>
-          <div class="form-group"><label>Primary Color</label><input type="color" id="wlPrimaryColor" value="#3B82F6" style="width:100%;height:36px;border:none;cursor:pointer;border-radius:var(--radius)"></div>
-          <div class="form-group"><label>Background Color</label><input type="color" id="wlBgColor" value="#111827" style="width:100%;height:36px;border:none;cursor:pointer;border-radius:var(--radius)"></div>
-          <div class="form-group"><label>Custom Domain</label><input type="text" id="wlDomain" class="input" placeholder="signage.yourcompany.com"></div>
-          <div class="form-group"><label>Favicon URL</label><input type="text" id="wlFavicon" class="input" placeholder="https://..."></div>
+          <div class="form-group"><label>${t('settings.brand_name')}</label><input type="text" id="wlBrandName" class="input" placeholder="ScreenTinker"></div>
+          <div class="form-group"><label>${t('settings.logo_url')}</label><input type="text" id="wlLogoUrl" class="input" placeholder="https://..."></div>
+          <div class="form-group"><label>${t('settings.primary_color')}</label><input type="color" id="wlPrimaryColor" value="#3B82F6" style="width:100%;height:36px;border:none;cursor:pointer;border-radius:var(--radius)"></div>
+          <div class="form-group"><label>${t('settings.bg_color')}</label><input type="color" id="wlBgColor" value="#111827" style="width:100%;height:36px;border:none;cursor:pointer;border-radius:var(--radius)"></div>
+          <div class="form-group"><label>${t('settings.custom_domain')}</label><input type="text" id="wlDomain" class="input" placeholder="signage.yourcompany.com"></div>
+          <div class="form-group"><label>${t('settings.favicon_url')}</label><input type="text" id="wlFavicon" class="input" placeholder="https://..."></div>
         </div>
-        <div class="form-group"><label>Custom CSS (optional)</label><textarea id="wlCustomCss" class="input" rows="3" style="font-family:monospace;font-size:12px" placeholder=":root { --accent: #ff6600; }"></textarea></div>
-        <div class="form-group"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wlHideBranding"> Hide "ScreenTinker" branding</label></div>
-        <button class="btn btn-primary btn-sm" id="saveWhiteLabelBtn">Save Branding</button>
-        <button class="btn btn-secondary btn-sm" id="previewWhiteLabelBtn" style="margin-left:8px">Preview</button>
+        <div class="form-group"><label>${t('settings.custom_css')}</label><textarea id="wlCustomCss" class="input" rows="3" style="font-family:monospace;font-size:12px" placeholder=":root { --accent: #ff6600; }"></textarea></div>
+        <div class="form-group"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wlHideBranding"> ${t('settings.hide_branding')}</label></div>
+        <button class="btn btn-primary btn-sm" id="saveWhiteLabelBtn">${t('settings.save_branding')}</button>
+        <button class="btn btn-secondary btn-sm" id="previewWhiteLabelBtn" style="margin-left:8px">${t('settings.preview')}</button>
       </div>
     </div>
     ` : ''}
 
     <div class="settings-section">
-      <h3>Server Information</h3>
+      <h3>${t('settings.server_info')}</h3>
       <div class="info-grid">
         <div class="info-card">
-          <div class="info-card-label">Server URL</div>
+          <div class="info-card-label">${t('settings.server_url')}</div>
           <div class="info-card-value small">${serverUrl}</div>
-          <p style="font-size:11px;color:var(--text-muted);margin-top:4px">Use this URL when setting up the Android app</p>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:4px">${t('settings.server_url_hint')}</p>
         </div>
         <div class="info-card">
-          <div class="info-card-label">API Endpoint</div>
+          <div class="info-card-label">${t('settings.api_endpoint')}</div>
           <div class="info-card-value small">${serverUrl}/api</div>
         </div>
       </div>
     </div>
 
     <div class="settings-section">
-      <h3>Setup Guide</h3>
+      <h3>${t('settings.setup_guide')}</h3>
       <div style="color:var(--text-secondary);font-size:13px;line-height:1.8">
         <ol style="padding-left:20px;list-style:decimal">
-          <li>Install the <strong>ScreenTinker</strong> APK on your Apolosign portable TV via sideloading</li>
-          <li>Open the app and enter this server URL: <code style="background:var(--bg-input);padding:2px 6px;border-radius:4px">${serverUrl}</code></li>
-          <li>The app will display a <strong>6-digit pairing code</strong></li>
-          <li>Click <strong>"Add Display"</strong> on the dashboard and enter the pairing code</li>
-          <li>Upload content in the <strong>Content Library</strong></li>
-          <li>Assign content to the display's <strong>Playlist</strong></li>
+          <li>${t('settings.setup_step_1')}</li>
+          <li>${t('settings.setup_step_2_prefix')} <code style="background:var(--bg-input);padding:2px 6px;border-radius:4px">${serverUrl}</code></li>
+          <li>${t('settings.setup_step_3')}</li>
+          <li>${t('settings.setup_step_4')}</li>
+          <li>${t('settings.setup_step_5')}</li>
+          <li>${t('settings.setup_step_6')}</li>
         </ol>
       </div>
     </div>
 
-    ${isAdmin ? `
-    ` : ''}
-
     <div class="settings-section">
-      <h3>Your Data</h3>
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Export or import your devices, content, layouts, schedules, and all settings. Use this to migrate between cloud and self-hosted instances.</p>
+      <h3>${t('settings.your_data')}</h3>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">${t('settings.your_data_desc')}</p>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-secondary btn-sm" id="exportDataBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          Export My Data
+          ${t('settings.export_my_data')}
         </button>
         <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary);cursor:pointer">
-          <input type="checkbox" id="exportIncludeFiles"> Include media files (ZIP)
+          <input type="checkbox" id="exportIncludeFiles"> ${t('settings.include_media_zip')}
         </label>
         <button class="btn btn-secondary btn-sm" id="importDataBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          Import Data
+          ${t('settings.import_data')}
         </button>
         <input type="file" id="importFileInput" accept=".json,.zip" style="display:none">
       </div>
@@ -136,23 +133,23 @@ export async function render(container) {
     </div>
 
     <div class="settings-section">
-      <h3>Language</h3>
+      <h3>${t('settings.language')}</h3>
       <select id="langSelect" class="input" style="width:200px;background:var(--bg-input)">
         ${getAvailableLanguages().map(l => `<option value="${l.code}" ${l.code === getLanguage() ? 'selected' : ''}>${l.name}</option>`).join('')}
       </select>
     </div>
 
     <div class="settings-section">
-      <h3>About</h3>
+      <h3>${t('settings.about')}</h3>
       <div style="color:var(--text-secondary);font-size:13px">
         <p><strong>ScreenTinker</strong> v1.4.1</p>
-        <p style="margin-top:4px">Digital signage management system.</p>
+        <p style="margin-top:4px">${t('settings.about_tagline')}</p>
         <p style="margin-top:12px">
-          <a href="/legal/terms.html" target="_blank" style="color:var(--accent);font-size:12px">Terms of Service</a>
+          <a href="/legal/terms.html" target="_blank" style="color:var(--accent);font-size:12px">${t('auth.terms')}</a>
           &nbsp;&middot;&nbsp;
-          <a href="/legal/privacy.html" target="_blank" style="color:var(--accent);font-size:12px">Privacy Policy</a>
+          <a href="/legal/privacy.html" target="_blank" style="color:var(--accent);font-size:12px">${t('auth.privacy')}</a>
           &nbsp;&middot;&nbsp;
-          <a href="/legal/third-party.html" target="_blank" style="color:var(--accent);font-size:12px">Third-Party Licenses</a>
+          <a href="/legal/third-party.html" target="_blank" style="color:var(--accent);font-size:12px">${t('settings.third_party_licenses')}</a>
         </p>
       </div>
     </div>
@@ -177,7 +174,7 @@ export async function render(container) {
         if (res.ok) {
           document.getElementById('supportTokenOutput').value = data.token;
           document.getElementById('supportTokenResult').style.display = 'block';
-          showToast(`Support token generated (valid ${hours}h)`, 'success');
+          showToast(t('settings.toast.support_token_generated', { hours }), 'success');
         } else showToast(data.error, 'error');
       } catch (err) { showToast(err.message, 'error'); }
     });
@@ -204,35 +201,35 @@ export async function render(container) {
     statusEl.style.background = 'var(--bg-secondary)';
     statusEl.style.border = '1px solid var(--border)';
     statusEl.style.color = 'var(--text-secondary)';
-    statusEl.textContent = 'Reading file...';
+    statusEl.textContent = t('settings.import.reading_file');
     try {
       let data;
       if (isZip) {
         // For ZIP, show basic info and skip preview parsing
         data = { format: 'screentinker-export-v1', _isZip: true };
-        statusEl.innerHTML = `ZIP export detected: <strong>${esc(file.name)}</strong> (${(file.size / 1048576).toFixed(1)} MB)<br>Contains data + media files.<br><br><button class="btn btn-primary btn-sm" id="confirmImportBtn">Confirm Import</button> <button class="btn btn-secondary btn-sm" id="cancelImportBtn">Cancel</button>`;
+        statusEl.innerHTML = `${t('settings.import.zip_detected', { name: esc(file.name), size: (file.size / 1048576).toFixed(1) })}<br><br><button class="btn btn-primary btn-sm" id="confirmImportBtn">${t('settings.import.confirm')}</button> <button class="btn btn-secondary btn-sm" id="cancelImportBtn">${t('common.cancel')}</button>`;
       } else {
         const text = await file.text();
         data = JSON.parse(text);
         if (!data.format || !data.format.startsWith('screentinker-export')) {
           statusEl.style.color = 'var(--danger)';
-          statusEl.textContent = 'Invalid file. Must be a ScreenTinker export JSON or ZIP.';
+          statusEl.textContent = t('settings.import.invalid_file');
           return;
         }
         const summary = [
-          data.devices?.length ? `${data.devices.length} devices` : null,
-          data.content?.length ? `${data.content.length} content items` : null,
-          data.widgets?.length ? `${data.widgets.length} widgets` : null,
-          data.layouts?.length ? `${data.layouts.length} layouts` : null,
-          data.schedules?.length ? `${data.schedules.length} schedules` : null,
-          data.video_walls?.length ? `${data.video_walls.length} video walls` : null,
-          data.kiosk_pages?.length ? `${data.kiosk_pages.length} kiosk pages` : null,
+          data.devices?.length ? t('settings.import.summary_devices', { n: data.devices.length }) : null,
+          data.content?.length ? t('settings.import.summary_content', { n: data.content.length }) : null,
+          data.widgets?.length ? t('settings.import.summary_widgets', { n: data.widgets.length }) : null,
+          data.layouts?.length ? t('settings.import.summary_layouts', { n: data.layouts.length }) : null,
+          data.schedules?.length ? t('settings.import.summary_schedules', { n: data.schedules.length }) : null,
+          data.video_walls?.length ? t('settings.import.summary_walls', { n: data.video_walls.length }) : null,
+          data.kiosk_pages?.length ? t('settings.import.summary_kiosk', { n: data.kiosk_pages.length }) : null,
         ].filter(Boolean).join(', ');
-        statusEl.innerHTML = `Found: ${esc(summary) || 'empty export'}.<br>From: ${esc(data.user?.email) || 'unknown'} (exported ${esc(data.exported_at?.split('T')[0]) || 'unknown'})<br><br><button class="btn btn-primary btn-sm" id="confirmImportBtn">Confirm Import</button> <button class="btn btn-secondary btn-sm" id="cancelImportBtn">Cancel</button>`;
+        statusEl.innerHTML = `${t('settings.import.found_summary', { summary: esc(summary) || t('settings.import.empty_export'), email: esc(data.user?.email) || t('common.unknown'), date: esc(data.exported_at?.split('T')[0]) || t('common.unknown') })}<br><br><button class="btn btn-primary btn-sm" id="confirmImportBtn">${t('settings.import.confirm')}</button> <button class="btn btn-secondary btn-sm" id="cancelImportBtn">${t('common.cancel')}</button>`;
       }
       document.getElementById('cancelImportBtn').onclick = () => { statusEl.style.display = 'none'; e.target.value = ''; };
       document.getElementById('confirmImportBtn').onclick = async () => {
-        statusEl.innerHTML = isZip ? 'Uploading and importing... This may take a moment for large files.' : 'Importing...';
+        statusEl.innerHTML = isZip ? t('settings.import.uploading_zip') : t('settings.import.importing');
         try {
           const token = localStorage.getItem('token');
           let res;
@@ -255,28 +252,28 @@ export async function render(container) {
           if (res.ok) {
             const imported = Object.entries(result.stats).filter(([k,v]) => v > 0 && k !== 'files_restored').map(([k,v]) => `${v} ${k}`).join(', ');
             statusEl.style.color = 'var(--success)';
-            let html = `Import complete: ${imported}.`;
+            let html = t('settings.import.complete', { imported });
             if (result.device_pairings?.length) {
-              html += `<br><br><strong>Device Pairing Codes:</strong><br><table style="margin-top:8px;font-size:12px;border-collapse:collapse">` +
+              html += `<br><br><strong>${t('settings.import.pairing_codes_title')}</strong><br><table style="margin-top:8px;font-size:12px;border-collapse:collapse">` +
                 result.device_pairings.map(d => `<tr><td style="padding:4px 12px 4px 0">${d.name}</td><td style="font-family:monospace;font-weight:700;font-size:14px;letter-spacing:2px">${d.pairing_code}</td></tr>`).join('') +
-                `</table><br>Enter these codes on each device to re-link them. All assignments and schedules will be preserved.`;
+                `</table><br>${t('settings.import.pairing_codes_hint')}`;
             }
             html += `<br><br>${(result.notes || []).map(n => '&bull; ' + n).join('<br>')}`;
             statusEl.innerHTML = html;
-            showToast('Data imported successfully', 'success');
+            showToast(t('settings.toast.import_success'), 'success');
           } else {
             statusEl.style.color = 'var(--danger)';
-            statusEl.textContent = result.error || 'Import failed';
+            statusEl.textContent = result.error || t('settings.import.failed');
           }
         } catch (err) {
           statusEl.style.color = 'var(--danger)';
-          statusEl.textContent = 'Import failed: ' + err.message;
+          statusEl.textContent = t('settings.import.failed_with_error', { error: err.message });
         }
         e.target.value = '';
       };
     } catch (err) {
       statusEl.style.color = 'var(--danger)';
-      statusEl.textContent = 'Failed to read file: ' + err.message;
+      statusEl.textContent = t('settings.import.read_failed', { error: err.message });
     }
   });
 
@@ -288,14 +285,14 @@ export async function render(container) {
 
   document.getElementById('saveAcctBtn')?.addEventListener('click', async () => {
     const name = document.getElementById('acctName').value.trim();
-    if (!name) return showToast('Name cannot be empty', 'error');
+    if (!name) return showToast(t('settings.toast.name_required'), 'error');
     const btn = document.getElementById('saveAcctBtn');
     btn.disabled = true;
     try {
       const updated = await api.updateMe({ name });
       const stored = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...stored, ...updated }));
-      showToast('Profile saved', 'success');
+      showToast(t('settings.toast.profile_saved'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -307,9 +304,9 @@ export async function render(container) {
     const current = document.getElementById('acctCurrentPw').value;
     const next = document.getElementById('acctNewPw').value;
     const confirm = document.getElementById('acctConfirmPw').value;
-    if (!current) return showToast('Enter your current password', 'error');
-    if (next.length < 8) return showToast('New password must be at least 8 characters', 'error');
-    if (next !== confirm) return showToast('New passwords do not match', 'error');
+    if (!current) return showToast(t('settings.toast.current_password_required'), 'error');
+    if (next.length < 8) return showToast(t('settings.toast.new_password_min_8'), 'error');
+    if (next !== confirm) return showToast(t('settings.toast.passwords_dont_match'), 'error');
     const btn = document.getElementById('changePwBtn');
     btn.disabled = true;
     try {
@@ -317,7 +314,7 @@ export async function render(container) {
       document.getElementById('acctCurrentPw').value = '';
       document.getElementById('acctNewPw').value = '';
       document.getElementById('acctConfirmPw').value = '';
-      showToast('Password changed', 'success');
+      showToast(t('settings.toast.password_changed'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -336,10 +333,10 @@ async function loadWhiteLabel() {
   const section = document.getElementById('whiteLabelSection');
   if (section && user.plan_id !== 'enterprise' && user.role !== 'superadmin') {
     section.innerHTML = `
-      <h3>White Label / Branding</h3>
+      <h3>${t('settings.white_label')}</h3>
       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">
-        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:8px">Custom branding is available on the Enterprise plan</p>
-        <a href="#/billing" class="btn btn-secondary btn-sm" style="text-decoration:none">View Plans</a>
+        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:8px">${t('settings.white_label_enterprise_only')}</p>
+        <a href="#/billing" class="btn btn-secondary btn-sm" style="text-decoration:none">${t('settings.view_plans')}</a>
       </div>
     `;
     return;
@@ -376,7 +373,7 @@ async function loadWhiteLabel() {
         })
       });
       await resetBranding();
-      showToast('Branding saved', 'success');
+      showToast(t('settings.toast.branding_saved'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -387,7 +384,7 @@ async function loadWhiteLabel() {
     const bg = document.getElementById('wlBgColor').value;
     document.documentElement.style.setProperty('--accent', primary);
     document.documentElement.style.setProperty('--bg-primary', bg);
-    showToast('Preview applied (refresh to reset)', 'info');
+    showToast(t('settings.toast.preview_applied'), 'info');
   });
 }
 
@@ -408,11 +405,11 @@ async function loadUsers() {
       <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:520px">
         <thead>
           <tr style="border-bottom:1px solid var(--border);text-align:left">
-            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">User</th>
-            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">Auth</th>
-            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">Role</th>
-            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">Plan</th>
-            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">Actions</th>
+            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">${t('settings.user.col_user')}</th>
+            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">${t('settings.user.col_auth')}</th>
+            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">${t('settings.user.col_role')}</th>
+            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">${t('settings.user.col_plan')}</th>
+            <th style="padding:8px 12px;color:var(--text-muted);font-weight:500">${t('settings.user.col_actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -434,14 +431,14 @@ async function loadUsers() {
                 </select>
               </td>
               <td style="padding:10px 12px">
-                ${u.id !== currentUser.id ? `<button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${u.id}">Remove</button>` : '<span style="color:var(--text-muted);font-size:11px">You</span>'}
+                ${u.id !== currentUser.id ? `<button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${u.id}">${t('settings.user.remove')}</button>` : `<span style="color:var(--text-muted);font-size:11px">${t('settings.user.you')}</span>`}
               </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
       </div>
-      <p style="color:var(--text-muted);font-size:11px;margin-top:12px">${users.length} user(s) registered</p>
+      <p style="color:var(--text-muted);font-size:11px;margin-top:12px">${tn('settings.user.count', users.length)}</p>
     `;
 
     // Plan change handlers
@@ -451,7 +448,7 @@ async function loadUsers() {
         const planId = select.value;
         try {
           await api.assignPlan(userId, planId);
-          showToast('Plan updated', 'success');
+          showToast(t('settings.toast.plan_updated'), 'success');
         } catch (err) {
           showToast(err.message, 'error');
           loadUsers(); // Revert
@@ -466,7 +463,7 @@ async function loadUsers() {
         if (confirming) {
           try {
             await api.deleteUser(btn.dataset.userId);
-            showToast('User removed', 'success');
+            showToast(t('settings.toast.user_removed'), 'success');
             loadUsers();
           } catch (err) {
             showToast(err.message, 'error');
@@ -474,12 +471,12 @@ async function loadUsers() {
           return;
         }
         confirming = true;
-        btn.textContent = 'Confirm?';
+        btn.textContent = t('settings.user.confirm');
         btn.style.background = 'var(--danger)';
         btn.style.color = 'white';
         setTimeout(() => {
           confirming = false;
-          btn.textContent = 'Remove';
+          btn.textContent = t('settings.user.remove');
           btn.style.background = '';
           btn.style.color = '';
         }, 3000);
