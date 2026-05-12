@@ -1,5 +1,6 @@
 const { db } = require('../db/database');
 const config = require('../config');
+const { deviceRoom, emitToWorkspace } = require('../lib/socket-rooms');
 
 // Track connected device sockets: deviceId -> { socketId, lastHeartbeat }
 const deviceConnections = new Map();
@@ -21,8 +22,8 @@ function startHeartbeatChecker(io) {
           .run(device.id);
         deviceConnections.delete(device.id);
 
-        // Notify dashboard
-        dashboardNs.emit('dashboard:device-status', {
+        // Notify dashboard (workspace-scoped via the device's room).
+        emitToWorkspace(dashboardNs, deviceRoom(device.id), 'dashboard:device-status', {
           device_id: device.id,
           status: 'offline',
           telemetry: null

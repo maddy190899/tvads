@@ -53,13 +53,14 @@ router.get('/', (req, res) => {
   res.json(walls);
 });
 
-// Notify dashboard clients to re-fetch walls/devices. Re-fetches re-apply
-// per-user visibility filtering, so a broadcast is safe.
-function notifyDashboards(req) {
+// Notify dashboard clients to re-fetch walls/devices. Phase 2.3: scoped to
+// the wall's workspace room so other tenants don't get a stray refresh ping.
+function notifyDashboards(req, workspaceId) {
   try {
     const io = req.app.get('io');
-    if (!io) return;
-    io.of('/dashboard').emit('dashboard:wall-changed');
+    if (!io || !workspaceId) return;
+    const { workspaceRoom, emitToWorkspace } = require('../lib/socket-rooms');
+    emitToWorkspace(io.of('/dashboard'), workspaceRoom(workspaceId), 'dashboard:wall-changed', null);
   } catch (e) { /* silent */ }
 }
 
@@ -125,7 +126,7 @@ router.post('/', (req, res) => {
     bezel_h_mm || 0, bezel_v_mm || 0, playlist_id || null);
 
   const wall = loadWallWithDevices(id);
-  notifyDashboards(req);
+  notifyDashboards(req, req.workspaceId);
   res.status(201).json(wall);
 });
 
@@ -181,13 +182,14 @@ router.put('/:id', requireWallWrite, (req, res) => {
   }
 
   pushToWallMembers(req, req.params.id);
-  notifyDashboards(req);
+  notifyDashboards(req, req.wall.workspace_id);
   res.json(loadWallWithDevices(req.params.id));
 });
 
 // Delete wall — clear playlists + wall_id on every former member (matches
 // group-dissolve semantics: leaving the wall returns devices to ungrouped).
 router.delete('/:id', requireWallWrite, (req, res) => {
+  const wallWorkspaceId = req.wall.workspace_id; // capture before the DELETE
   const members = db.prepare('SELECT device_id FROM video_wall_devices WHERE wall_id = ?').all(req.params.id);
   const tx = db.transaction(() => {
     db.prepare("UPDATE devices SET wall_id = NULL, playlist_id = NULL WHERE wall_id = ?").run(req.params.id);
@@ -198,7 +200,7 @@ router.delete('/:id', requireWallWrite, (req, res) => {
   // Push fresh (now wall-less, playlist-less) payloads to ex-members so they
   // exit wall mode and clear content immediately.
   for (const m of members) pushWallPayloadToDevice(req, m.device_id);
-  notifyDashboards(req);
+  notifyDashboards(req, wallWorkspaceId);
 
   res.json({ success: true });
 });
@@ -276,7 +278,7 @@ router.put('/:id/devices', requireWallWrite, (req, res) => {
   // ex-members so they exit wall mode.
   for (const id of removedIds) pushWallPayloadToDevice(req, id);
   pushToWallMembers(req, req.params.id);
-  notifyDashboards(req);
+  notifyDashboards(req, req.wall.workspace_id);
 
   res.json(loadWallWithDevices(req.params.id));
 });

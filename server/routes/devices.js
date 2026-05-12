@@ -175,10 +175,13 @@ router.delete('/:id', (req, res) => {
   db.prepare('DELETE FROM video_wall_devices WHERE device_id = ?').run(req.params.id);
   db.prepare('DELETE FROM devices WHERE id = ?').run(req.params.id);
 
-  // Notify dashboard in real-time
+  // Notify dashboard in real-time. Phase 2.3: scope to the device's
+  // (now-deleted but still-known) workspace room. `device.workspace_id`
+  // came from checkDeviceOwnership() above.
   const io = req.app.get('io');
   if (io) {
-    io.of('/dashboard').emit('dashboard:device-removed', { device_id: req.params.id });
+    const { workspaceRoom, emitToWorkspace } = require('../lib/socket-rooms');
+    emitToWorkspace(io.of('/dashboard'), workspaceRoom(device.workspace_id), 'dashboard:device-removed', { device_id: req.params.id });
   }
 
   res.json({ success: true });

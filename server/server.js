@@ -467,7 +467,9 @@ app.post('/api/provision/pair', requireAuth, resolveTenancy, checkDeviceLimit, (
   deviceNs.to(device.id).emit('device:paired', { device_id: device.id, name: deviceName });
 
   const updated = db.prepare('SELECT * FROM devices WHERE id = ?').get(device.id);
-  dashboardNs.emit('dashboard:device-added', updated);
+  // Phase 2.3: scope to the workspace the device was just claimed into.
+  const { workspaceRoom, emitToWorkspace } = require('./lib/socket-rooms');
+  emitToWorkspace(dashboardNs, workspaceRoom(updated.workspace_id), 'dashboard:device-added', updated);
 
   res.json(updated);
 });

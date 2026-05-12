@@ -1,11 +1,39 @@
 const heartbeat = require('../services/heartbeat');
 const { verifyToken } = require('../middleware/auth');
+const { db } = require('../db/database');
+const { accessContext, accessibleWorkspaceIds } = require('../lib/tenancy');
+const { workspaceRoom } = require('../lib/socket-rooms');
+
+// Phase 2.3: workspace-scoped socket rooms + per-command permission gates.
+// Replaces the previous flat dashboardNs.emit broadcast (which leaked every
+// device's status/screenshot/playback events to every connected dashboard)
+// and the legacy admin/superadmin role bypass (dead code post-Phase-1
+// rename - admin -> user, superadmin -> platform_admin).
+//
+// On connect: enumerate the user's accessible workspace_ids and socket.join
+// a room per workspace. Outbound broadcasts route via dashboardNs.to(room).
+// Inbound commands check permission against the target device's workspace.
+
+// Permission gate for inbound socket commands. Read tier = workspace_viewer+;
+// write tier = workspace_editor+. Platform_admin and org_owner/admin always
+// pass via actingAs.
+function canActOnDevice(socket, deviceId, tier /* 'read' | 'write' */) {
+  const device = db.prepare('SELECT workspace_id FROM devices WHERE id = ?').get(deviceId);
+  if (!device || !device.workspace_id) return false;
+  const ws = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(device.workspace_id);
+  if (!ws) return false;
+  const ctx = accessContext(socket.userId, socket.userRole, ws);
+  if (!ctx) return false;
+  if (ctx.actingAs) return true; // platform_admin or org admin
+  if (tier === 'read') return !!ctx.workspaceRole; // viewer/editor/admin all OK
+  // write tier: workspace_editor or workspace_admin
+  return ctx.workspaceRole === 'workspace_editor' || ctx.workspaceRole === 'workspace_admin';
+}
 
 module.exports = function setupDashboardSocket(io) {
   const dashboardNs = io.of('/dashboard');
   const deviceNs = io.of('/device');
 
-  // Authenticate dashboard WebSocket connections
   dashboardNs.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error('Authentication required'));
@@ -19,65 +47,54 @@ module.exports = function setupDashboardSocket(io) {
     }
   });
 
-  // Verify the user owns the device or is admin/superadmin
-  function checkDeviceOwnership(socket, device_id) {
-    if (['admin', 'superadmin'].includes(socket.userRole)) return true;
-    const { db } = require('../db/database');
-    const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(device_id);
-    if (!device) return false;
-    return device.user_id === socket.userId;
-  }
-
   dashboardNs.on('connection', (socket) => {
-    console.log(`Dashboard client connected: ${socket.id} (user: ${socket.userId})`);
+    // Note on workspace-switch lifecycle: the switcher (Phase 3 MVP) calls
+    // window.location.reload() after switching, which forces a new socket
+    // connection with fresh JWT claims. So workspace memberships are
+    // re-evaluated at connect time and we don't need to re-evaluate per-emit.
+    const wsIds = accessibleWorkspaceIds(socket.userId, socket.userRole);
+    for (const wsId of wsIds) socket.join(workspaceRoom(wsId));
+    console.log(`Dashboard client connected: ${socket.id} (user: ${socket.userId}, rooms: ${wsIds.length})`);
 
-    // Request screenshot from a device
     socket.on('dashboard:request-screenshot', (data) => {
       const { device_id } = data;
-      if (!checkDeviceOwnership(socket, device_id)) return;
+      if (!canActOnDevice(socket, device_id, 'read')) return;
       const conn = heartbeat.getConnection(device_id);
-      if (conn) {
-        deviceNs.to(device_id).emit('device:screenshot-request', {});
-      }
+      if (conn) deviceNs.to(device_id).emit('device:screenshot-request', {});
     });
 
-    // Remote control: touch forwarding
     socket.on('dashboard:remote-touch', (data) => {
       const { device_id, x, y, action } = data;
-      if (!checkDeviceOwnership(socket, device_id)) return;
+      if (!canActOnDevice(socket, device_id, 'write')) return;
       deviceNs.to(device_id).emit('device:remote-touch', { x, y, action });
     });
 
-    // Remote control: key forwarding
     socket.on('dashboard:remote-key', (data) => {
       const { device_id, keycode } = data;
-      if (!checkDeviceOwnership(socket, device_id)) return;
+      if (!canActOnDevice(socket, device_id, 'write')) return;
       console.log(`Remote key: ${keycode} -> ${device_id}`);
       deviceNs.to(device_id).emit('device:remote-key', { keycode });
     });
 
-    // Start remote screenshot streaming
     socket.on('dashboard:remote-start', (data) => {
       const { device_id } = data;
-      if (!checkDeviceOwnership(socket, device_id)) return;
+      if (!canActOnDevice(socket, device_id, 'write')) return;
       const room = deviceNs.adapter.rooms.get(device_id);
       console.log(`Remote start for ${device_id}, room has ${room?.size || 0} socket(s)`);
       deviceNs.to(device_id).emit('device:remote-start', {});
       console.log(`Remote session started for device ${device_id}`);
     });
 
-    // Stop remote screenshot streaming
     socket.on('dashboard:remote-stop', (data) => {
       const { device_id } = data;
-      if (!checkDeviceOwnership(socket, device_id)) return;
+      if (!canActOnDevice(socket, device_id, 'write')) return;
       deviceNs.to(device_id).emit('device:remote-stop', {});
       console.log(`Remote session stopped for device ${device_id}`);
     });
 
-    // Send command to device (reboot, refresh, etc.)
     socket.on('dashboard:device-command', (data) => {
       const { device_id, type, payload } = data;
-      if (!checkDeviceOwnership(socket, device_id)) return;
+      if (!canActOnDevice(socket, device_id, 'write')) return;
       deviceNs.to(device_id).emit('device:command', { type, payload });
       console.log(`Command sent to device ${device_id}: ${type}`);
     });
@@ -89,3 +106,4 @@ module.exports = function setupDashboardSocket(io) {
 
   return dashboardNs;
 };
+

@@ -138,6 +138,28 @@ function resolveTenancy(req, res, next) {
   next();
 }
 
+// Enumerate every workspace_id the given user has any path into:
+//   - direct workspace_members rows
+//   - any workspace in an org where they are org_owner / org_admin
+//   - platform_admin / superadmin: every workspace in the system
+// Used by socket.io rooms (Phase 2.3) to scope outbound broadcasts. Also a
+// candidate to broaden /me's accessible_workspaces query - currently /me only
+// returns direct workspace_members for non-admins, missing the org-admin
+// path. Future cleanup tracked in the handoff doc.
+function accessibleWorkspaceIds(userId, role) {
+  if (!userId) return [];
+  if (role === 'platform_admin' || role === 'superadmin') {
+    return db.prepare('SELECT id FROM workspaces').all().map(r => r.id);
+  }
+  return db.prepare(`
+    SELECT workspace_id AS id FROM workspace_members WHERE user_id = ?
+    UNION
+    SELECT w.id FROM workspaces w
+    JOIN organization_members om ON om.organization_id = w.organization_id
+    WHERE om.user_id = ? AND om.role IN ('org_owner', 'org_admin')
+  `).all(userId, userId).map(r => r.id);
+}
+
 module.exports = {
   resolveTenancy,
   // Exported for testing / direct use by routes that need ad-hoc checks.
@@ -145,4 +167,5 @@ module.exports = {
   membershipOf,
   orgMembershipOf,
   firstAccessibleWorkspace,
+  accessibleWorkspaceIds,
 };

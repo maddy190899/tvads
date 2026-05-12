@@ -6,6 +6,13 @@ const { db, pruneTelemetry, pruneScreenshots } = require('../db/database');
 const config = require('../config');
 const heartbeat = require('../services/heartbeat');
 const { getUserPlan, getUserDeviceCount } = require('../middleware/subscription');
+// Phase 2.3: deviceRoom() resolves a device_id to its workspace room so
+// dashboardNs.emit can be scoped instead of broadcast platform-wide.
+const { deviceRoom, emitToWorkspace } = require('../lib/socket-rooms');
+
+function emitToDeviceWorkspace(dashboardNs, deviceId, event, payload) {
+  emitToWorkspace(dashboardNs, deviceRoom(deviceId), event, payload);
+}
 
 // In-memory store for latest screenshot per device (avoids disk writes during streaming)
 let lastScreenshots = {};
@@ -247,7 +254,7 @@ module.exports = function setupDeviceSocket(io) {
                 heartbeat.registerConnection(existing.device_id, socket.id);
                 socket.join(existing.device_id);
                 logDeviceStatus(existing.device_id, 'online');
-                dashboardNs.emit('dashboard:device-status', { device_id: existing.device_id, status: 'online' });
+                emitToDeviceWorkspace(dashboardNs, existing.device_id, 'dashboard:device-status', { device_id: existing.device_id, status: 'online' });
                 // Send playlist
                 const access = checkDeviceAccess(existing.device_id);
                 if (!access.allowed) {
@@ -343,7 +350,7 @@ module.exports = function setupDeviceSocket(io) {
             socket.emit('device:playlist-update', buildPlaylistPayload(device_id));
           }
 
-          dashboardNs.emit('dashboard:device-status', { device_id, status: 'online' });
+          emitToDeviceWorkspace(dashboardNs, device_id, 'dashboard:device-status', { device_id, status: 'online' });
           console.log(`Device reconnected: ${device_id}`);
           return;
         }
@@ -376,7 +383,12 @@ module.exports = function setupDeviceSocket(io) {
         socket.join(id);
         socket.emit('device:registered', { device_id: id, device_token: newToken, status: 'provisioning' });
 
-        dashboardNs.emit('dashboard:device-added', db.prepare('SELECT * FROM devices WHERE id = ?').get(id));
+        // Newly-provisioned devices have no workspace_id yet (they'll get one
+        // on pair claim). emitToDeviceWorkspace silently drops when there's no
+        // workspace; that's safer than the previous platform-wide broadcast.
+        // Dashboards refresh /api/devices/unassigned on poll for the
+        // platform_admin pairing view.
+        emitToDeviceWorkspace(dashboardNs, id, 'dashboard:device-added', db.prepare('SELECT * FROM devices WHERE id = ?').get(id));
         console.log(`New device registered: ${id} with pairing code: ${pairing_code}`);
       }
     });
@@ -422,7 +434,7 @@ module.exports = function setupDeviceSocket(io) {
         );
         pruneTelemetry(device_id);
 
-        dashboardNs.emit('dashboard:device-status', {
+        emitToDeviceWorkspace(dashboardNs, device_id, 'dashboard:device-status', {
           device_id,
           status: 'online',
           telemetry
@@ -444,7 +456,7 @@ module.exports = function setupDeviceSocket(io) {
 
       // Relay directly to dashboard - no disk write
       try {
-        dashboardNs.emit('dashboard:screenshot-ready', {
+        emitToDeviceWorkspace(dashboardNs, device_id, 'dashboard:screenshot-ready', {
           device_id,
           image_data: `data:image/jpeg;base64,${image_b64}`,
           timestamp: Date.now()
@@ -460,13 +472,15 @@ module.exports = function setupDeviceSocket(io) {
       const { device_id, content_id, status } = data;
       if (device_id !== currentDeviceId) return;
       console.log(`Device ${device_id} content ${content_id}: ${status}`);
-      dashboardNs.emit('dashboard:content-ack', { device_id, content_id, status });
+      emitToDeviceWorkspace(dashboardNs, device_id, 'dashboard:content-ack', { device_id, content_id, status });
     });
 
     // Playback state update
     socket.on('device:playback-state', (data) => {
       if (!requireDeviceAuth()) return;
-      dashboardNs.emit('dashboard:playback-state', data);
+      // currentDeviceId is the authenticated device for this socket; use it
+      // for the workspace lookup since data may not carry device_id consistently.
+      emitToDeviceWorkspace(dashboardNs, currentDeviceId, 'dashboard:playback-state', data);
     });
 
     // Play event logging (proof-of-play)
@@ -482,7 +496,7 @@ module.exports = function setupDeviceSocket(io) {
           `).run(device_id, content_id || null, zone_id || null, content_name || 'Unknown');
           // Forward to dashboard so it can render a per-device progress bar.
           // Server-side timestamp avoids clock-skew between player and dashboard.
-          dashboardNs.emit('dashboard:playback-progress', {
+          emitToDeviceWorkspace(dashboardNs, device_id, 'dashboard:playback-progress', {
             device_id,
             content_id: content_id || null,
             content_name: content_name || null,
@@ -561,7 +575,7 @@ module.exports = function setupDeviceSocket(io) {
           .run(currentDeviceId);
         heartbeat.removeConnection(currentDeviceId);
         logDeviceStatus(currentDeviceId, 'offline');
-        dashboardNs.emit('dashboard:device-status', { device_id: currentDeviceId, status: 'offline' });
+        emitToDeviceWorkspace(dashboardNs, currentDeviceId, 'dashboard:device-status', { device_id: currentDeviceId, status: 'offline' });
 
         // If this device was leading a wall, reassign leadership to the next
         // online member so playback stays driven. Without this the wall freezes
