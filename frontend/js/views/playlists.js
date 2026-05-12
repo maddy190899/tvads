@@ -290,7 +290,7 @@ function renderItems(items) {
       <div style="color:var(--text-muted);font-size:12px;min-width:24px;text-align:center;user-select:none">${i + 1}</div>
       <div style="width:48px;height:36px;border-radius:4px;overflow:hidden;background:var(--bg-input);flex-shrink:0;display:flex;align-items:center;justify-content:center">
         ${item.thumbnail_path
-          ? `<img src="/uploads/thumbnails/${esc(item.thumbnail_path.split('/').pop())}" style="width:100%;height:100%;object-fit:cover">`
+          ? `<img src="/api/content/${esc(item.content_id)}/thumbnail" style="width:100%;height:100%;object-fit:cover">`
           : `<div style="color:var(--text-muted);opacity:0.5">${getTypeIcon(item)}</div>`
         }
       </div>
@@ -540,7 +540,7 @@ async function showAddItemModal(playlistId) {
       const isWidget = activeTab === 'widgets';
       const name = item.filename || item.name || t('common.unknown');
       const sub = isWidget ? (item.widget_type || t('playlist.item_widget')) : (item.mime_type || '');
-      const thumb = item.thumbnail_path ? `/uploads/thumbnails/${esc(item.thumbnail_path.split('/').pop())}` : null;
+      const thumb = item.thumbnail_path ? `/api/content/${esc(item.id)}/thumbnail` : null;
       return `
         <div class="add-item-row" data-id="${esc(item.id)}" data-type="${isWidget ? 'widget' : 'content'}" style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:var(--radius);cursor:pointer;transition:background 0.1s">
           <div style="width:40px;height:30px;border-radius:4px;overflow:hidden;background:var(--bg-input);flex-shrink:0;display:flex;align-items:center;justify-content:center">
