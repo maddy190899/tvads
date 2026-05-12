@@ -28,6 +28,12 @@ export async function render(container) {
         <div class="form-group"><label>${t('auth.email')}</label><input type="email" class="input" value="${esc(user.email || '')}" disabled></div>
         <div class="form-group"><label>${t('auth.name')}</label><input type="text" id="acctName" class="input" value="${esc(user.name || '')}"></div>
       </div>
+      <div class="form-group" style="margin-top:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="acctEmailAlerts" ${user.email_alerts ? 'checked' : ''}>
+          <span>${t('settings.email_alerts')}</span>
+        </label>
+      </div>
       <button class="btn btn-secondary btn-sm" id="saveAcctBtn">${t('settings.save_profile')}</button>
 
       ${user.auth_provider === 'local' ? `
@@ -286,10 +292,11 @@ export async function render(container) {
   document.getElementById('saveAcctBtn')?.addEventListener('click', async () => {
     const name = document.getElementById('acctName').value.trim();
     if (!name) return showToast(t('settings.toast.name_required'), 'error');
+    const email_alerts = !!document.getElementById('acctEmailAlerts')?.checked;
     const btn = document.getElementById('saveAcctBtn');
     btn.disabled = true;
     try {
-      const updated = await api.updateMe({ name });
+      const updated = await api.updateMe({ name, email_alerts });
       const stored = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...stored, ...updated }));
       showToast(t('settings.toast.profile_saved'), 'success');

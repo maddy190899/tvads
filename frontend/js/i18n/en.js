@@ -375,6 +375,7 @@ export default {
   'settings.subtitle': 'Server configuration and setup information',
   'settings.account': 'Account',
   'settings.save_profile': 'Save Profile',
+  'settings.email_alerts': 'Email me when devices go offline',
   'settings.change_password': 'Change Password',
   'settings.password_min_8': 'Must be at least 8 characters.',
   'settings.current_password': 'Current Password',

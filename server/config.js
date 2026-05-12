@@ -35,8 +35,18 @@ module.exports = {
   // Stripe (optional - for paid subscriptions)
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
-  // Email alerts webhook URL (POST endpoint for sending emails)
-  emailWebhookUrl: process.env.EMAIL_WEBHOOK_URL || '',
+  // Microsoft Graph email sender (services/email.js). Required for actual
+  // delivery; absent values short-circuit to a stdout fallback for local dev.
+  graphTenantId: process.env.GRAPH_TENANT_ID || '',
+  graphClientId: process.env.GRAPH_CLIENT_ID || '',
+  graphClientSecret: process.env.GRAPH_CLIENT_SECRET || '',
+  graphSenderEmail: process.env.GRAPH_SENDER_EMAIL || '',
+  graphSenderName: process.env.GRAPH_SENDER_NAME || 'ScreenTinker',
+  // Dev safety net: comma-separated allow-list of recipient emails. When set,
+  // sends to any address NOT in the list are suppressed (logged but not posted
+  // to Graph). Intended for local dev that pulls fresh prod DB copies - keeps
+  // us from accidentally emailing real prod users. UNSET on prod systemd unit.
+  graphDevRestrictTo: process.env.GRAPH_DEV_RESTRICT_TO || '',
   // Self-hosted mode: if true, first user gets enterprise plan and no billing
   selfHosted: process.env.SELF_HOSTED === 'true',
   // Disable public registration (OAuth auto-signup is also blocked when set).

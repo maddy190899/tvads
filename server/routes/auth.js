@@ -386,10 +386,14 @@ router.post('/switch-workspace', requireAuth, (req, res) => {
 
 // Update current user
 router.put('/me', requireAuth, (req, res) => {
-  const { name, password, current_password } = req.body;
+  const { name, password, current_password, email_alerts } = req.body;
   if (name) {
     db.prepare('UPDATE users SET name = ?, updated_at = strftime(\'%s\',\'now\') WHERE id = ?')
       .run(name, req.user.id);
+  }
+  if (email_alerts !== undefined) {
+    db.prepare('UPDATE users SET email_alerts = ?, updated_at = strftime(\'%s\',\'now\') WHERE id = ?')
+      .run(email_alerts ? 1 : 0, req.user.id);
   }
   if (password) {
     if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
@@ -407,7 +411,7 @@ router.put('/me', requireAuth, (req, res) => {
     db.prepare('UPDATE users SET password_hash = ?, updated_at = strftime(\'%s\',\'now\') WHERE id = ?')
       .run(hash, req.user.id);
   }
-  const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, email_alerts FROM users WHERE id = ?').get(req.user.id);
   res.json(user);
 });
 

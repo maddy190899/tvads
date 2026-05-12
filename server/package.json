@@ -4,10 +4,11 @@
   "description": "ScreenTinker - Digital Signage Management Server",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev": "node --watch --env-file-if-exists=.env server.js"
   },
   "dependencies": {
+    "@azure/msal-node": "^5.2.1",
     "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^9.4.3",
