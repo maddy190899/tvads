@@ -2,10 +2,20 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db/database');
 const { PLATFORM_ROLES, ELEVATED_ROLES } = require('../middleware/auth');
+// Phase 2.2a: workspace-aware access. accessContext returns { workspaceRole, actingAs }
+// or null based on the caller's reach into a specific workspace.
+const { accessContext } = require('../lib/tenancy');
 
-// List devices for current user (admins see all)
+// List devices in the caller's current workspace.
+// Phase 2.2a: filter by workspace_id instead of user_id. The caller's current
+// workspace is resolved by resolveTenancy middleware from JWT or query/header
+// override. Platform_admin and org_owner/admin see whichever workspace they
+// are currently switched into (cross-workspace visibility comes from
+// switch-workspace, not from a special list filter).
 router.get('/', (req, res) => {
-  const isAdmin = PLATFORM_ROLES.includes(req.user.role);
+  if (!req.workspaceId) return res.json([]);
+  const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+  const offset = parseInt(req.query.offset) || 0;
   const devices = db.prepare(`
     SELECT d.*,
       t.battery_level, t.battery_charging, t.storage_free_mb, t.storage_total_mb,
@@ -25,10 +35,10 @@ router.get('/', (req, res) => {
       INNER JOIN (SELECT device_id, MAX(captured_at) as max_at FROM screenshots GROUP BY device_id) latest
       ON sc.device_id = latest.device_id AND sc.captured_at = latest.max_at
     ) s ON d.id = s.device_id
-    ${isAdmin ? 'WHERE d.user_id IS NOT NULL' : 'WHERE d.user_id IS NOT NULL AND (d.user_id = ? OR d.team_id IN (SELECT team_id FROM team_members WHERE user_id = ?))'}
+    WHERE d.workspace_id = ?
     ORDER BY d.created_at ASC
     LIMIT ? OFFSET ?
-  `).all(...(isAdmin ? [] : [req.user.id, req.user.id]), Math.min(parseInt(req.query.limit) || 100, 500), parseInt(req.query.offset) || 0);
+  `).all(req.workspaceId, limit, offset);
   res.json(devices);
 });
 
@@ -50,12 +60,15 @@ router.get('/unassigned', (req, res) => {
 router.get('/:id', (req, res) => {
   const device = db.prepare('SELECT d.*, u.email as owner_email, u.name as owner_name FROM devices d LEFT JOIN users u ON d.user_id = u.id WHERE d.id = ?').get(req.params.id);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  // Check access: admin, owner, or team member
-  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id !== req.user.id) {
-    const teamAccess = device.team_id ? db.prepare('SELECT role FROM team_members WHERE team_id = ? AND user_id = ?').get(device.team_id, req.user.id) : null;
-    if (!teamAccess) return res.status(403).json({ error: 'Access denied' });
-    device._teamRole = teamAccess.role; // Pass team role for frontend to check
-  }
+  // Phase 2.2a: workspace-aware read check. accessContext returns null when
+  // the caller has no path (direct member, org-level acting-as, or platform_admin)
+  // to the device's workspace.
+  if (!device.workspace_id) return res.status(403).json({ error: 'Device not assigned to a workspace' });
+  const ws = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(device.workspace_id);
+  const ctx = ws && accessContext(req.user.id, req.user.role, ws);
+  if (!ctx) return res.status(403).json({ error: 'Access denied' });
+  if (ctx.workspaceRole) device._workspaceRole = ctx.workspaceRole; // Pass to frontend
+  if (ctx.actingAs) device._actingAs = true;
 
   const telemetry = db.prepare(
     'SELECT * FROM device_telemetry WHERE device_id = ? ORDER BY reported_at DESC LIMIT 20'
@@ -106,16 +119,21 @@ router.get('/:id', (req, res) => {
   res.json({ ...device, telemetry, screenshot, assignments, playlist_status, playlist_has_published, uptimeData, statusLog });
 });
 
-// Helper: check device ownership
+// Helper: check device write access via the workspace the device belongs to.
+// Phase 2.2a: replaces user_id + team_members check. Allows: platform_admin,
+// org_owner/admin of the device's org (acting-as), workspace_admin/editor of
+// the device's workspace. Denies workspace_viewer and non-members.
 function checkDeviceOwnership(req, res) {
   const device = db.prepare('SELECT * FROM devices WHERE id = ?').get(req.params.id);
   if (!device) { res.status(404).json({ error: 'Device not found' }); return null; }
-  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id && device.user_id !== req.user.id) {
-    // Check team membership
-    const teamAccess = device.team_id ? db.prepare('SELECT role FROM team_members WHERE team_id = ? AND user_id = ?').get(device.team_id, req.user.id) : null;
-    if (!teamAccess || teamAccess.role === 'viewer') {
-      res.status(403).json({ error: 'Access denied' }); return null;
-    }
+  if (!device.workspace_id) { res.status(403).json({ error: 'Device not assigned to a workspace' }); return null; }
+  const ws = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(device.workspace_id);
+  const ctx = ws && accessContext(req.user.id, req.user.role, ws);
+  if (!ctx) { res.status(403).json({ error: 'Access denied' }); return null; }
+  // ctx.actingAs covers platform_admin and org_owner/admin paths (always writable).
+  // Direct workspace members: workspace_viewer is read-only.
+  if (!ctx.actingAs && ctx.workspaceRole === 'workspace_viewer') {
+    res.status(403).json({ error: 'Read-only access' }); return null;
   }
   return device;
 }

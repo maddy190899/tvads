@@ -429,16 +429,20 @@ const originalProvisionRoute = require('./routes/provisioning');
 
 // Override provision to also notify device via WS
 const { checkDeviceLimit } = require('./middleware/subscription');
-app.post('/api/provision/pair', requireAuth, checkDeviceLimit, (req, res) => {
+app.post('/api/provision/pair', requireAuth, resolveTenancy, checkDeviceLimit, (req, res) => {
   const { pairing_code, name } = req.body;
   if (!pairing_code) return res.status(400).json({ error: 'pairing_code required' });
+  // Phase 2.2a: pair into the caller's current workspace. Refusing on no
+  // context prevents the regression window where a newly-paired device
+  // would have workspace_id NULL and be invisible to workspace-filtered lists.
+  if (!req.workspaceId) return res.status(403).json({ error: 'No workspace context. Switch to a workspace before pairing.' });
 
   const device = db.prepare('SELECT * FROM devices WHERE pairing_code = ?').get(pairing_code);
   if (!device) return res.status(404).json({ error: 'No device found with that pairing code' });
 
   const deviceName = name || 'Display ' + (db.prepare('SELECT COUNT(*) as count FROM devices WHERE user_id = ?').get(req.user.id).count + 1);
-  db.prepare("UPDATE devices SET pairing_code = NULL, name = ?, user_id = ?, status = 'online', updated_at = strftime('%s','now') WHERE id = ?")
-    .run(deviceName, req.user.id, device.id);
+  db.prepare("UPDATE devices SET pairing_code = NULL, name = ?, user_id = ?, workspace_id = ?, status = 'online', updated_at = strftime('%s','now') WHERE id = ?")
+    .run(deviceName, req.user.id, req.workspaceId, device.id);
 
   // Link fingerprint to user
   db.prepare("UPDATE device_fingerprints SET user_id = ?, device_id = ? WHERE device_id = ?")
