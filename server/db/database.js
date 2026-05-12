@@ -16,6 +16,50 @@ db.pragma('foreign_keys = ON');
 const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 db.exec(schema);
 
+// Auto-apply Phase 1 multi-tenancy migration if not yet applied. Without this
+// a self-hoster who pulls latest and restarts hits a crash in
+// migrateFolderWorkspaceIds (queries workspaces table that doesn't exist).
+// Pre-existing data is snapshotted to db/remote_display.pre-migration-<ts>.db
+// before the migration runs - clear restore path on failure. Fresh installs
+// run against empty data (creates tables, no rows to backfill).
+function ensureMultitenancyMigration() {
+  let applied = false;
+  try {
+    applied = !!db.prepare(
+      "SELECT 1 FROM schema_migrations WHERE id = 'phase5_multitenancy_backfill'"
+    ).get();
+  } catch { /* schema_migrations may not exist yet; treat as not applied */ }
+  if (applied) return;
+
+  console.warn('[boot] Multi-tenancy schema not present - applying migration...');
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const snapshotPath = path.join(dbDir, `remote_display.pre-migration-${ts}.db`);
+  try {
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    fs.copyFileSync(config.dbPath, snapshotPath);
+    console.warn(`[boot] Pre-migration snapshot: ${snapshotPath}`);
+  } catch (e) {
+    console.error(`[boot] Snapshot failed: ${e.message}`);
+    process.exit(1);
+  }
+
+  try {
+    const { runMigration } = require('../../scripts/migrate-multitenancy');
+    runMigration({ db });
+    console.warn('[boot] Migration complete, continuing startup');
+  } catch (e) {
+    console.error(`[boot] Migration FAILED: ${e.message}`);
+    console.error(`[boot] Restore with: cp ${snapshotPath} ${config.dbPath}`);
+    process.exit(1);
+  }
+}
+
+// Note: ensureMultitenancyMigration() is called LATER, after the inline
+// migrations array has added team_id and workspace_id columns. The Phase 1
+// migration script reads team_id from resource tables during its backfill
+// loop, so those columns must exist first. Definition kept here near the
+// top so the auto-migration logic is easy to find when reading the file.
+
 // Migrations for existing databases
 const migrations = [
   'ALTER TABLE content ADD COLUMN remote_url TEXT',
@@ -330,6 +374,12 @@ function migrateGroupSchedules() {
 
 migrateGroupSchedules();
 
+// Phase 1 multi-tenancy migration (auto-applies if not yet run). Must come
+// AFTER the inline migrations above so that team_id / workspace_id columns
+// exist on resource tables - the Phase 1 backfill loop reads team_id and
+// updates workspace_id.
+ensureMultitenancyMigration();
+
 // Phase 2.2c migration: backfill content_folders.workspace_id from owner's
 // default workspace. The ALTER lives in the migrations array above; this
 // one-shot populates the column for any rows that pre-date it.
@@ -338,6 +388,16 @@ const PHASE6_MIGRATION_ID = 'phase6_content_folders_workspace';
 function migrateFolderWorkspaceIds() {
   const already = db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(PHASE6_MIGRATION_ID);
   if (already) return;
+
+  // Belt-and-suspenders: if multi-tenancy tables aren't present (auto-runner
+  // somehow skipped), skip cleanly instead of crashing on the JOIN below.
+  const hasWorkspaces = db.prepare(
+    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='workspaces'"
+  ).get();
+  if (!hasWorkspaces) {
+    console.warn('migrateFolderWorkspaceIds: workspaces table missing, skipping');
+    return;
+  }
 
   // Check the column exists before trying to backfill. (Defensive: on a fresh
   // install the schema.sql defines content_folders without the column, the
@@ -384,6 +444,16 @@ const PHASE_2_2_ACTIVITY_STOP_ID = 'phase_2_2_activity_log_stop_bleeding';
 function backfillActivityLogWorkspace() {
   const already = db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(PHASE_2_2_ACTIVITY_STOP_ID);
   if (already) return;
+
+  // Belt-and-suspenders: if multi-tenancy tables aren't present (auto-runner
+  // somehow skipped), skip cleanly instead of crashing on workspace_members.
+  const hasMembers = db.prepare(
+    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='workspace_members'"
+  ).get();
+  if (!hasMembers) {
+    console.warn('backfillActivityLogWorkspace: workspace_members table missing, skipping');
+    return;
+  }
 
   const viaDevice = db.prepare(`
     UPDATE activity_log SET workspace_id = (
