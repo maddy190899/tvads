@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { showToast } from '../components/toast.js';
-import { esc } from '../utils.js';
+import { esc, isPlatformAdmin } from '../utils.js';
 import { t } from '../i18n.js';
 
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' });
@@ -8,7 +8,7 @@ const API = (url, opts = {}) => fetch('/api' + url, { headers: headers(), ...opt
 
 export async function render(container) {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  if (user.role !== 'superadmin') {
+  if (!isPlatformAdmin(user)) {
     container.innerHTML = `<div class="empty-state"><h3>${t('admin.access_denied')}</h3><p>${t('admin.access_denied_desc')}</p></div>`;
     return;
   }

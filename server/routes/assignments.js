@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
+const { ELEVATED_ROLES } = require('../middleware/auth');
 
 // Mark playlist as draft (called after any item mutation)
 function markDraft(playlistId) {
@@ -12,7 +13,7 @@ function markDraft(playlistId) {
 function checkDeviceAccess(req, res, paramName = 'deviceId') {
   const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(req.params[paramName]);
   if (!device) { res.status(404).json({ error: 'Device not found' }); return false; }
-  if (!['admin','superadmin'].includes(req.user.role) && device.user_id && device.user_id !== req.user.id) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id && device.user_id !== req.user.id) {
     res.status(403).json({ error: 'Access denied' }); return false;
   }
   return true;
@@ -65,7 +66,7 @@ router.post('/device/:deviceId', (req, res) => {
   if (content_id) {
     const content = db.prepare('SELECT id, user_id FROM content WHERE id = ?').get(content_id);
     if (!content) return res.status(404).json({ error: 'Content not found' });
-    if (!['admin','superadmin'].includes(req.user.role) && content.user_id && content.user_id !== req.user.id) {
+    if (!ELEVATED_ROLES.includes(req.user.role) && content.user_id && content.user_id !== req.user.id) {
       return res.status(403).json({ error: 'Content not owned by you' });
     }
   }
@@ -105,7 +106,7 @@ router.post('/device/:deviceId', (req, res) => {
 router.put('/:id', (req, res) => {
   const item = db.prepare('SELECT pi.*, p.user_id FROM playlist_items pi JOIN playlists p ON pi.playlist_id = p.id WHERE pi.id = ?').get(req.params.id);
   if (!item) return res.status(404).json({ error: 'Item not found' });
-  if (!['admin','superadmin'].includes(req.user.role) && item.user_id !== req.user.id) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && item.user_id !== req.user.id) {
     return res.status(403).json({ error: 'Access denied' });
   }
 
@@ -131,7 +132,7 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const item = db.prepare('SELECT pi.*, p.user_id FROM playlist_items pi JOIN playlists p ON pi.playlist_id = p.id WHERE pi.id = ?').get(req.params.id);
   if (!item) return res.status(404).json({ error: 'Item not found' });
-  if (!['admin','superadmin'].includes(req.user.role) && item.user_id !== req.user.id) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && item.user_id !== req.user.id) {
     return res.status(403).json({ error: 'Access denied' });
   }
 

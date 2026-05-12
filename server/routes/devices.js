@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../db/database');
+const { PLATFORM_ROLES, ELEVATED_ROLES } = require('../middleware/auth');
 
 // List devices for current user (admins see all)
 router.get('/', (req, res) => {
-  const isAdmin = req.user.role === 'superadmin';
+  const isAdmin = PLATFORM_ROLES.includes(req.user.role);
   const devices = db.prepare(`
     SELECT d.*,
       t.battery_level, t.battery_charging, t.storage_free_mb, t.storage_total_mb,
@@ -33,7 +34,7 @@ router.get('/', (req, res) => {
 
 // List unclaimed provisioning devices (admin only)
 router.get('/unassigned', (req, res) => {
-  if (!['admin', 'superadmin'].includes(req.user.role)) {
+  if (!ELEVATED_ROLES.includes(req.user.role)) {
     return res.status(403).json({ error: 'Admin access required' });
   }
   const devices = db.prepare(`
@@ -50,7 +51,7 @@ router.get('/:id', (req, res) => {
   const device = db.prepare('SELECT d.*, u.email as owner_email, u.name as owner_name FROM devices d LEFT JOIN users u ON d.user_id = u.id WHERE d.id = ?').get(req.params.id);
   if (!device) return res.status(404).json({ error: 'Device not found' });
   // Check access: admin, owner, or team member
-  if (!['admin','superadmin'].includes(req.user.role) && device.user_id !== req.user.id) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id !== req.user.id) {
     const teamAccess = device.team_id ? db.prepare('SELECT role FROM team_members WHERE team_id = ? AND user_id = ?').get(device.team_id, req.user.id) : null;
     if (!teamAccess) return res.status(403).json({ error: 'Access denied' });
     device._teamRole = teamAccess.role; // Pass team role for frontend to check
@@ -109,7 +110,7 @@ router.get('/:id', (req, res) => {
 function checkDeviceOwnership(req, res) {
   const device = db.prepare('SELECT * FROM devices WHERE id = ?').get(req.params.id);
   if (!device) { res.status(404).json({ error: 'Device not found' }); return null; }
-  if (!['admin','superadmin'].includes(req.user.role) && device.user_id && device.user_id !== req.user.id) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id && device.user_id !== req.user.id) {
     // Check team membership
     const teamAccess = device.team_id ? db.prepare('SELECT role FROM team_members WHERE team_id = ? AND user_id = ?').get(device.team_id, req.user.id) : null;
     if (!teamAccess || teamAccess.role === 'viewer') {

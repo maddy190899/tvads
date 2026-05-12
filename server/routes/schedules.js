@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
+const { ELEVATED_ROLES } = require('../middleware/auth');
 
 // Helper: build the expanded schedule query for a device (device-level + group-level)
 function getDeviceSchedulesQuery() {
@@ -57,7 +58,7 @@ router.get('/', (req, res) => {
 router.get('/device/:deviceId', (req, res) => {
   const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(req.params.deviceId);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  if (!['admin','superadmin'].includes(req.user.role) && device.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
 
   const schedules = db.prepare(getDeviceSchedulesQuery()).all(req.params.deviceId, req.params.deviceId);
   res.json(schedules);
@@ -71,7 +72,7 @@ router.get('/week', (req, res) => {
   // Verify device ownership
   const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(device_id);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  if (!['admin','superadmin'].includes(req.user.role) && device.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
 
   const weekStart = date ? new Date(date) : new Date();
   weekStart.setHours(0, 0, 0, 0);
@@ -111,14 +112,14 @@ router.post('/', (req, res) => {
   if (device_id) {
     const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(device_id);
     if (!device) return res.status(404).json({ error: 'Device not found' });
-    if (!['admin','superadmin'].includes(req.user.role) && device.user_id !== req.user.id) {
+    if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id !== req.user.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
   }
   if (group_id) {
     const group = db.prepare('SELECT user_id FROM device_groups WHERE id = ?').get(group_id);
     if (!group) return res.status(404).json({ error: 'Group not found' });
-    if (!['admin','superadmin'].includes(req.user.role) && group.user_id !== req.user.id) {
+    if (!ELEVATED_ROLES.includes(req.user.role) && group.user_id !== req.user.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
   }
@@ -140,7 +141,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   const schedule = db.prepare('SELECT * FROM schedules WHERE id = ?').get(req.params.id);
   if (!schedule) return res.status(404).json({ error: 'Schedule not found' });
-  const isAdmin = ['admin','superadmin'].includes(req.user.role);
+  const isAdmin = ELEVATED_ROLES.includes(req.user.role);
   if (!isAdmin && schedule.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
 
   // If changing target, enforce mutual exclusion
@@ -206,7 +207,7 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const schedule = db.prepare('SELECT * FROM schedules WHERE id = ?').get(req.params.id);
   if (!schedule) return res.status(404).json({ error: 'Schedule not found' });
-  if (!['admin','superadmin'].includes(req.user.role) && schedule.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+  if (!ELEVATED_ROLES.includes(req.user.role) && schedule.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
   db.prepare('DELETE FROM schedules WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });

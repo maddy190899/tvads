@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
+const { ELEVATED_ROLES } = require('../middleware/auth');
 
 const VALID_COLOR = /^#[0-9A-Fa-f]{6}$/;
 const ALLOWED_COMMANDS = ['screen_on', 'screen_off', 'launch', 'update', 'reboot', 'shutdown'];
@@ -117,7 +118,7 @@ router.post('/:id/devices', requireGroupOwnership, (req, res) => {
   if (!device_id) return res.status(400).json({ error: 'device_id required' });
   const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(device_id);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  if (!['admin','superadmin'].includes(req.user.role) && device.user_id && device.user_id !== req.user.id) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id && device.user_id !== req.user.id) {
     return res.status(403).json({ error: 'Access denied' });
   }
   try {

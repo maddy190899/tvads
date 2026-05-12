@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
+const { ELEVATED_ROLES } = require('../middleware/auth');
 
 // List user's teams
 router.get('/', (req, res) => {
@@ -35,7 +36,7 @@ router.get('/:id', (req, res) => {
 
   const membership = db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?')
     .get(req.params.id, req.user.id);
-  if (!membership && !['admin','superadmin'].includes(req.user.role)) return res.status(403).json({ error: 'Not a member' });
+  if (!membership && !ELEVATED_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Not a member' });
 
   team.members = db.prepare(`
     SELECT tm.*, u.email, u.name as user_name, u.avatar_url
@@ -54,7 +55,7 @@ router.get('/:id', (req, res) => {
 router.put('/:id', (req, res) => {
   const team = db.prepare('SELECT * FROM teams WHERE id = ?').get(req.params.id);
   if (!team) return res.status(404).json({ error: 'Team not found' });
-  if (team.owner_id !== req.user.id && !['admin','superadmin'].includes(req.user.role)) return res.status(403).json({ error: 'Owner only' });
+  if (team.owner_id !== req.user.id && !ELEVATED_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Owner only' });
 
   if (req.body.name) {
     db.prepare('UPDATE teams SET name = ? WHERE id = ?').run(req.body.name, req.params.id);
@@ -66,7 +67,7 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const team = db.prepare('SELECT * FROM teams WHERE id = ?').get(req.params.id);
   if (!team) return res.status(404).json({ error: 'Team not found' });
-  if (team.owner_id !== req.user.id && !['admin','superadmin'].includes(req.user.role)) return res.status(403).json({ error: 'Owner only' });
+  if (team.owner_id !== req.user.id && !ELEVATED_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Owner only' });
 
   db.prepare('DELETE FROM teams WHERE id = ?').run(req.params.id);
   res.json({ success: true });
@@ -127,7 +128,7 @@ router.put('/:id/members/:userId', (req, res) => {
 
   // Only team owner or admin can change roles
   const membership = db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?').get(req.params.id, req.user.id);
-  if (!['admin','superadmin'].includes(req.user.role) && (!membership || membership.role !== 'owner')) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && (!membership || membership.role !== 'owner')) {
     return res.status(403).json({ error: 'Only team owner can change roles' });
   }
 
@@ -143,7 +144,7 @@ router.delete('/:id/members/:userId', (req, res) => {
   if (team.owner_id === req.params.userId) return res.status(400).json({ error: 'Cannot remove owner' });
 
   const membership = db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?').get(req.params.id, req.user.id);
-  if (!['admin','superadmin'].includes(req.user.role) && (!membership || membership.role !== 'owner')) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && (!membership || membership.role !== 'owner')) {
     return res.status(403).json({ error: 'Only team owner can remove members' });
   }
 
@@ -156,7 +157,7 @@ router.delete('/:id/members/:userId', (req, res) => {
 function checkTeamAccess(req, res) {
   const membership = db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?')
     .get(req.params.id, req.user.id);
-  if (!membership && !['admin','superadmin'].includes(req.user.role)) {
+  if (!membership && !ELEVATED_ROLES.includes(req.user.role)) {
     res.status(403).json({ error: 'Not a team member' });
     return false;
   }
@@ -173,7 +174,7 @@ router.post('/:id/devices', (req, res) => {
 
   const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(device_id);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  const isAdmin = ['admin', 'superadmin'].includes(req.user.role);
+  const isAdmin = ELEVATED_ROLES.includes(req.user.role);
   if (!isAdmin && device.user_id !== req.user.id) {
     return res.status(403).json({ error: 'You do not own this device' });
   }
@@ -188,7 +189,7 @@ router.delete('/:id/devices/:deviceId', (req, res) => {
   if (!checkTeamAccess(req, res)) return;
   const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(req.params.deviceId);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  const isAdmin = ['admin', 'superadmin'].includes(req.user.role);
+  const isAdmin = ELEVATED_ROLES.includes(req.user.role);
   if (!isAdmin && device.user_id !== req.user.id) {
     return res.status(403).json({ error: 'You do not own this device' });
   }

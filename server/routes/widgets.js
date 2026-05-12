@@ -5,6 +5,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
 const appConfig = require('../config');
+const { PLATFORM_ROLES, ELEVATED_ROLES } = require('../middleware/auth');
 
 // For preview only: inline /api/content/:id/file and /thumbnail URLs as data URIs,
 // scoped to the current user. Lets the srcdoc preview iframe show logos/bg images
@@ -64,7 +65,7 @@ function safeUrl(url) {
 //          this admin owns (matches /auth/users visibility)
 //   user:  own + public (null owner)
 router.get('/', (req, res) => {
-  if (req.user.role === 'superadmin') {
+  if (PLATFORM_ROLES.includes(req.user.role)) {
     const widgets = db.prepare('SELECT * FROM widgets ORDER BY created_at DESC').all();
     return res.json(widgets);
   }
@@ -106,7 +107,7 @@ function checkWidgetAccess(req, res) {
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ?').get(req.params.id);
   if (!widget) { res.status(404).json({ error: 'Widget not found' }); return null; }
   // Allow access if: admin, owner, no owner (public), or render route (no req.user)
-  if (req.user && !['admin','superadmin'].includes(req.user.role) && widget.user_id && widget.user_id !== req.user.id) {
+  if (req.user && !ELEVATED_ROLES.includes(req.user.role) && widget.user_id && widget.user_id !== req.user.id) {
     res.status(403).json({ error: 'Access denied' }); return null;
   }
   return widget;

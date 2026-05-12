@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config');
+const { PLATFORM_ROLES } = require('../middleware/auth');
 
 // Public status page
 router.get('/', (req, res) => {
@@ -45,7 +46,7 @@ router.get('/backup', (req, res) => {
     const config = require('../config');
     const decoded = jwt.verify(token, config.jwtSecret);
     const user = db.prepare('SELECT role FROM users WHERE id = ?').get(decoded.id);
-    if (!user || user.role !== 'superadmin') return res.status(403).json({ error: 'Superadmin only' });
+    if (!user || !PLATFORM_ROLES.includes(user.role)) return res.status(403).json({ error: 'Platform admin only' });
   } catch {
     return res.status(401).json({ error: 'Invalid token' });
   }

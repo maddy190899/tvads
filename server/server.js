@@ -294,27 +294,32 @@ app.get('/api/content/:id/thumbnail', (req, res) => {
   res.sendFile(safePath);
 });
 
-// Protected API Routes
+// Protected API Routes.
+// Phase 2.1: resolveTenancy runs right after requireAuth on every resource
+// route. It attaches req.workspaceId, req.workspaceRole, req.orgRole,
+// req.isPlatformAdmin, req.actingAs. Route handlers in 2.1 don't read these
+// yet (they still filter by user_id); 2.2 will migrate them one route at a time.
 const { requireAuth } = require('./middleware/auth');
-app.use('/api/devices', requireAuth, require('./routes/devices'));
-app.use('/api/content', requireAuth, require('./routes/content'));
-app.use('/api/folders', requireAuth, require('./routes/folders'));
-app.use('/api/assignments', requireAuth, require('./routes/assignments'));
-app.use('/api/provision', requireAuth, require('./routes/provisioning'));
-app.use('/api/layouts', requireAuth, require('./routes/layouts'));
+const { resolveTenancy } = require('./lib/tenancy');
+app.use('/api/devices', requireAuth, resolveTenancy, require('./routes/devices'));
+app.use('/api/content', requireAuth, resolveTenancy, require('./routes/content'));
+app.use('/api/folders', requireAuth, resolveTenancy, require('./routes/folders'));
+app.use('/api/assignments', requireAuth, resolveTenancy, require('./routes/assignments'));
+app.use('/api/provision', requireAuth, resolveTenancy, require('./routes/provisioning'));
+app.use('/api/layouts', requireAuth, resolveTenancy, require('./routes/layouts'));
 // Widget render is public (accessed by devices)
 app.get('/api/widgets/:id/render', (req, res, next) => { req._skipAuth = true; next(); });
 // Rate limit preview endpoint — it inlines user content as base64 which is memory-intensive
 app.use('/api/widgets/preview', rateLimit(60000, 30));
-app.use('/api/widgets', (req, res, next) => { if (req._skipAuth) return next(); requireAuth(req, res, next); }, require('./routes/widgets'));
-app.use('/api/schedules', requireAuth, require('./routes/schedules'));
-app.use('/api/walls', requireAuth, require('./routes/video-walls'));
-app.use('/api/teams', requireAuth, require('./routes/teams'));
-app.use('/api/reports', requireAuth, require('./routes/reports'));
-app.use('/api/groups', requireAuth, require('./routes/device-groups'));
-app.use('/api/playlists', requireAuth, require('./routes/playlists'));
-app.use('/api/activity', requireAuth, require('./routes/activity'));
-app.use('/api/white-label', requireAuth, require('./routes/white-label'));
+app.use('/api/widgets', (req, res, next) => { if (req._skipAuth) return next(); requireAuth(req, res, next); }, resolveTenancy, require('./routes/widgets'));
+app.use('/api/schedules', requireAuth, resolveTenancy, require('./routes/schedules'));
+app.use('/api/walls', requireAuth, resolveTenancy, require('./routes/video-walls'));
+app.use('/api/teams', requireAuth, resolveTenancy, require('./routes/teams'));
+app.use('/api/reports', requireAuth, resolveTenancy, require('./routes/reports'));
+app.use('/api/groups', requireAuth, resolveTenancy, require('./routes/device-groups'));
+app.use('/api/playlists', requireAuth, resolveTenancy, require('./routes/playlists'));
+app.use('/api/activity', requireAuth, resolveTenancy, require('./routes/activity'));
+app.use('/api/white-label', requireAuth, resolveTenancy, require('./routes/white-label'));
 // Kiosk render is public (accessed by devices), CRUD is protected
 app.get('/api/kiosk/:id/render', (req, res, next) => {
   // Let it through to the kiosk route without auth
@@ -324,7 +329,7 @@ app.get('/api/kiosk/:id/render', (req, res, next) => {
 app.use('/api/kiosk', (req, res, next) => {
   if (req._skipAuth) return next();
   requireAuth(req, res, next);
-}, require('./routes/kiosk'));
+}, resolveTenancy, require('./routes/kiosk'));
 
 // Frontend version hash (changes when files are modified, triggers soft reload)
 const crypto = require('crypto');

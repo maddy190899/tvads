@@ -4,6 +4,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
 const config = require('../config');
+const { ELEVATED_ROLES } = require('../middleware/auth');
 
 // Re-probe video duration with ffprobe if content.duration_sec is missing
 async function probeAndUpdateDuration(content) {
@@ -239,7 +240,7 @@ router.post('/:id/items', requirePlaylistOwnership, async (req, res) => {
     if (content_id) {
       const content = db.prepare('SELECT id, user_id, duration_sec, mime_type, filepath FROM content WHERE id = ?').get(content_id);
       if (!content) return res.status(404).json({ error: 'Content not found' });
-      if (!['admin', 'superadmin'].includes(req.user.role) && content.user_id && content.user_id !== req.user.id) {
+      if (!ELEVATED_ROLES.includes(req.user.role) && content.user_id && content.user_id !== req.user.id) {
         return res.status(403).json({ error: 'Content not owned by you' });
       }
       if (duration_sec === undefined || duration_sec === null) {
@@ -377,7 +378,7 @@ router.post('/:id/assign', requirePlaylistOwnership, (req, res) => {
 
   const device = db.prepare('SELECT id, user_id FROM devices WHERE id = ?').get(device_id);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  if (!['admin', 'superadmin'].includes(req.user.role) && device.user_id !== req.user.id) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id !== req.user.id) {
     return res.status(403).json({ error: 'Device not owned by you' });
   }
 

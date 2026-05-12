@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
+const { PLATFORM_ROLES } = require('../middleware/auth');
 
 // Visibility model (matches widgets/users):
 //   superadmin: all walls
 //   admin:      own + walls owned by members of teams this admin owns
 //   user:       own only
 function listVisibleWalls(user) {
-  if (user.role === 'superadmin') {
+  if (PLATFORM_ROLES.includes(user.role)) {
     return db.prepare('SELECT * FROM video_walls ORDER BY created_at DESC').all();
   }
   if (user.role === 'admin') {
@@ -28,7 +29,7 @@ function listVisibleWalls(user) {
 }
 
 function userCanAccessWall(user, wall) {
-  if (user.role === 'superadmin') return true;
+  if (PLATFORM_ROLES.includes(user.role)) return true;
   if (wall.user_id === user.id) return true;
   if (user.role === 'admin') {
     const ownsTeamWithOwner = db.prepare(`
@@ -195,7 +196,7 @@ router.put('/:id/devices', (req, res) => {
   // Without this a user could attach another tenant's devices to their own
   // wall and silently take over the playlist + wall_id on those rows.
   // Mirrors the per-device check in device-groups.js.
-  if (!['superadmin'].includes(req.user.role)) {
+  if (!PLATFORM_ROLES.includes(req.user.role)) {
     const isAdmin = req.user.role === 'admin';
     for (const d of devices) {
       const dev = db.prepare('SELECT user_id, team_id FROM devices WHERE id = ?').get(d.device_id);

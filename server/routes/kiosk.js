@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
+const { PLATFORM_ROLES, ELEVATED_ROLES } = require('../middleware/auth');
 
 // Escape HTML to prevent XSS
 function escapeHtml(str) {
@@ -24,7 +25,7 @@ function safeNumber(val, fallback) {
 
 // List kiosk pages
 router.get('/', (req, res) => {
-  const isAdmin = req.user.role === 'superadmin';
+  const isAdmin = PLATFORM_ROLES.includes(req.user.role);
   const pages = db.prepare(
     `SELECT * FROM kiosk_pages ${isAdmin ? '' : 'WHERE user_id = ?'} ORDER BY created_at DESC`
   ).all(...(isAdmin ? [] : [req.user.id]));
@@ -35,7 +36,7 @@ router.get('/', (req, res) => {
 function checkKioskAccess(req, res) {
   const page = db.prepare('SELECT * FROM kiosk_pages WHERE id = ?').get(req.params.id);
   if (!page) { res.status(404).json({ error: 'Page not found' }); return null; }
-  if (req.user && !['admin','superadmin'].includes(req.user.role) && page.user_id !== req.user.id) {
+  if (req.user && !ELEVATED_ROLES.includes(req.user.role) && page.user_id !== req.user.id) {
     res.status(403).json({ error: 'Access denied' }); return null;
   }
   return page;

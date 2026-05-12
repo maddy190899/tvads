@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
+const { PLATFORM_ROLES, ELEVATED_ROLES } = require('../middleware/auth');
 
 // List layouts (user's + templates)
 router.get('/', (req, res) => {
   const showTemplates = req.query.templates === 'true';
-  const isAdmin = req.user.role === 'superadmin';
+  const isAdmin = PLATFORM_ROLES.includes(req.user.role);
 
   let layouts;
   if (showTemplates) {
@@ -28,7 +29,7 @@ router.get('/', (req, res) => {
 function checkLayoutAccess(req, res) {
   const layout = db.prepare('SELECT * FROM layouts WHERE id = ?').get(req.params.id);
   if (!layout) { res.status(404).json({ error: 'Layout not found' }); return null; }
-  if (!layout.is_template && !['admin','superadmin'].includes(req.user.role) && layout.user_id !== req.user.id) {
+  if (!layout.is_template && !ELEVATED_ROLES.includes(req.user.role) && layout.user_id !== req.user.id) {
     res.status(403).json({ error: 'Access denied' }); return null;
   }
   return layout;
@@ -74,7 +75,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   const layout = checkLayoutAccess(req, res);
   if (!layout) return;
-  if (layout.is_template && !['admin','superadmin'].includes(req.user.role)) return res.status(403).json({ error: 'Cannot edit templates' });
+  if (layout.is_template && !ELEVATED_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Cannot edit templates' });
 
   const { name, width, height } = req.body;
   if (name) db.prepare('UPDATE layouts SET name = ?, updated_at = strftime(\'%s\',\'now\') WHERE id = ?').run(name, req.params.id);
@@ -90,7 +91,7 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const layout = checkLayoutAccess(req, res);
   if (!layout) return;
-  if (layout.is_template && !['admin','superadmin'].includes(req.user.role)) return res.status(403).json({ error: 'Cannot delete templates' });
+  if (layout.is_template && !ELEVATED_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Cannot delete templates' });
 
   db.prepare('DELETE FROM layouts WHERE id = ?').run(req.params.id);
   res.json({ success: true });
@@ -182,7 +183,7 @@ router.post('/:id/duplicate', (req, res) => {
 router.put('/device/:deviceId', (req, res) => {
   const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(req.params.deviceId);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  if (!['admin','superadmin'].includes(req.user.role) && device.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
   const { layout_id } = req.body;
   db.prepare("UPDATE devices SET layout_id = ?, updated_at = strftime('%s','now') WHERE id = ?")
     .run(layout_id || null, req.params.deviceId);

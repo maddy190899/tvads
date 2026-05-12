@@ -5,9 +5,47 @@ const https = require('https');
 const { v4: uuidv4 } = require('uuid');
 const { OAuth2Client } = require('google-auth-library');
 const { db } = require('../db/database');
-const { generateToken, requireAuth, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
+const { generateToken, requireAuth, requireAdmin, requireSuperAdmin, PLATFORM_ROLES } = require('../middleware/auth');
+const { resolveTenancy } = require('../lib/tenancy');
 const { logActivity, getClientIp } = require('../services/activity');
 const config = require('../config');
+
+// Phase 2.1: find or create the user's default org+workspace. Returns the
+// workspace_id to embed in the JWT. Idempotent: if the user already has
+// memberships (e.g. migrated from Phase 1), returns the first one without
+// creating anything.
+function ensureDefaultOrgForUser(user) {
+  const existing = db.prepare(`
+    SELECT w.id FROM workspaces w
+    JOIN workspace_members wm ON wm.workspace_id = w.id
+    WHERE wm.user_id = ?
+    ORDER BY wm.joined_at ASC LIMIT 1
+  `).get(user.id);
+  if (existing) return existing.id;
+
+  // No memberships -> mint a fresh org and Default workspace owned by user.
+  const orgId = uuidv4();
+  const wsId  = uuidv4();
+  const orgName = (user.name && user.name.trim())
+    ? `${user.name}'s organization`
+    : `${user.email}'s organization`;
+  const tx = db.transaction(() => {
+    db.prepare(`INSERT INTO organizations (
+      id, name, owner_user_id, plan_id,
+      stripe_customer_id, stripe_subscription_id,
+      subscription_status, subscription_ends
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      orgId, orgName, user.id, user.plan_id || 'free',
+      user.stripe_customer_id || null, user.stripe_subscription_id || null,
+      user.subscription_status || 'active', user.subscription_ends || null
+    );
+    db.prepare(`INSERT INTO organization_members (organization_id, user_id, role) VALUES (?, ?, 'org_owner')`).run(orgId, user.id);
+    db.prepare(`INSERT INTO workspaces (id, organization_id, name, created_by) VALUES (?, ?, 'Default', ?)`).run(wsId, orgId, user.id);
+    db.prepare(`INSERT INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, 'workspace_admin')`).run(wsId, user.id);
+  });
+  tx();
+  return wsId;
+}
 
 function logFailedLogin(email, ip, reason) {
   try {
@@ -49,9 +87,10 @@ router.post('/register', (req, res) => {
   const id = uuidv4();
   const passwordHash = bcrypt.hashSync(password, 10);
 
-  // First user becomes admin with enterprise plan (self-hosted) or free plan with Pro trial
+  // First user becomes platform_admin with enterprise plan (self-hosted) or free plan with Pro trial.
+  // Phase 1 renamed the legacy 'superadmin' role to 'platform_admin'; new bootstrap users get the new name directly.
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-  const role = userCount === 0 ? 'superadmin' : 'user';
+  const role = userCount === 0 ? 'platform_admin' : 'user';
   const isFirstUser = userCount === 0;
   const plan = (isFirstUser && config.selfHosted) ? 'enterprise' : 'pro'; // Start on Pro trial
   const trialStarted = isFirstUser && config.selfHosted ? null : Math.floor(Date.now() / 1000);
@@ -61,10 +100,11 @@ router.post('/register', (req, res) => {
     VALUES (?, ?, ?, ?, 'local', ?, ?, ?, ?)
   `).run(id, email.toLowerCase(), name || email.split('@')[0], passwordHash, role, plan, trialStarted, trialStarted ? 'pro' : null);
 
-  const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id FROM users WHERE id = ?').get(id);
-  const token = generateToken(user);
+  const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_ends FROM users WHERE id = ?').get(id);
+  const workspaceId = ensureDefaultOrgForUser(user);
+  const token = generateToken(user, workspaceId);
 
-  res.status(201).json({ token, user });
+  res.status(201).json({ token, user, current_workspace_id: workspaceId });
 });
 
 // Login
@@ -84,9 +124,10 @@ router.post('/login', (req, res) => {
   }
 
   logSuccessfulLogin(user.id, email, getClientIp(req));
-  const token = generateToken(user);
+  const workspaceId = ensureDefaultOrgForUser(user);
+  const token = generateToken(user, workspaceId);
   const { password_hash, ...safeUser } = user;
-  res.json({ token, user: safeUser });
+  res.json({ token, user: safeUser, current_workspace_id: workspaceId });
 });
 
 // ==================== Google OAuth ====================
@@ -111,7 +152,7 @@ router.post('/google', async (req, res) => {
       }
       const id = uuidv4();
       const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-      const role = userCount === 0 ? 'superadmin' : 'user';
+      const role = userCount === 0 ? 'platform_admin' : 'user';
       const isFirst = userCount === 0;
       const plan = (isFirst && config.selfHosted) ? 'enterprise' : 'pro';
       const trialStarted = isFirst && config.selfHosted ? null : Math.floor(Date.now() / 1000);
@@ -134,9 +175,10 @@ router.post('/google', async (req, res) => {
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
     }
 
-    const token = generateToken(user);
+    const workspaceId = ensureDefaultOrgForUser(user);
+    const token = generateToken(user, workspaceId);
     const { password_hash, ...safeUser } = user;
-    res.json({ token, user: safeUser });
+    res.json({ token, user: safeUser, current_workspace_id: workspaceId });
   } catch (err) {
     console.error('Google auth error:', err);
     res.status(401).json({ error: 'Google authentication failed' });
@@ -189,7 +231,7 @@ router.post('/microsoft', async (req, res) => {
       }
       const id = uuidv4();
       const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-      const role = userCount === 0 ? 'superadmin' : 'user';
+      const role = userCount === 0 ? 'platform_admin' : 'user';
       const isFirst = userCount === 0;
       const plan = (isFirst && config.selfHosted) ? 'enterprise' : 'pro';
       const trialStarted = isFirst && config.selfHosted ? null : Math.floor(Date.now() / 1000);
@@ -210,9 +252,10 @@ router.post('/microsoft', async (req, res) => {
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
     }
 
-    const token = generateToken(user);
+    const workspaceId = ensureDefaultOrgForUser(user);
+    const token = generateToken(user, workspaceId);
     const { password_hash, ...safeUser } = user;
-    res.json({ token, user: safeUser });
+    res.json({ token, user: safeUser, current_workspace_id: workspaceId });
   } catch (err) {
     console.error('Microsoft auth error:', err);
     res.status(401).json({ error: 'Microsoft authentication failed' });
@@ -238,9 +281,60 @@ function getMicrosoftProfile(accessToken) {
 
 // ==================== User Management ====================
 
-// Get current user
-router.get('/me', requireAuth, (req, res) => {
-  res.json(req.user);
+// Get current user + tenancy context.
+// Phase 2.1: response shape extended with current_workspace, current_organization,
+// roles, and the list of accessible workspaces. Legacy fields (user object at
+// the top level) are preserved so existing frontend code continues to work.
+router.get('/me', requireAuth, resolveTenancy, (req, res) => {
+  const accessible = db.prepare(`
+    SELECT w.id, w.name, w.organization_id, o.name AS organization_name, wm.role AS workspace_role
+    FROM workspace_members wm
+    JOIN workspaces w ON w.id = wm.workspace_id
+    JOIN organizations o ON o.id = w.organization_id
+    WHERE wm.user_id = ?
+    ORDER BY o.name, w.name
+  `).all(req.user.id);
+
+  const currentOrg = req.organizationId
+    ? db.prepare('SELECT id, name FROM organizations WHERE id = ?').get(req.organizationId)
+    : null;
+
+  res.json({
+    ...req.user,
+    current_workspace_id: req.workspaceId,
+    current_workspace: req.workspace ? { id: req.workspace.id, name: req.workspace.name, organization_id: req.workspace.organization_id } : null,
+    current_organization: currentOrg,
+    current_workspace_role: req.workspaceRole,
+    current_org_role: req.orgRole,
+    is_platform_admin: req.isPlatformAdmin,
+    acting_as: req.actingAs,
+    accessible_workspaces: accessible,
+  });
+});
+
+// Switch the active workspace. Validates the user has access (direct
+// workspace_member, org-level admin in the parent org, or platform_admin),
+// then mints a fresh JWT with the new current_workspace_id.
+router.post('/switch-workspace', requireAuth, (req, res) => {
+  const { workspace_id } = req.body || {};
+  if (!workspace_id) return res.status(400).json({ error: 'workspace_id required' });
+
+  const ws = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(workspace_id);
+  if (!ws) return res.status(404).json({ error: 'Workspace not found' });
+
+  const isPlatformAdmin = req.user.role === 'platform_admin' || req.user.role === 'superadmin';
+  const wsMember = db.prepare('SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?').get(ws.id, req.user.id);
+  const orgMember = db.prepare(`
+    SELECT role FROM organization_members WHERE organization_id = ? AND user_id = ?
+  `).get(ws.organization_id, req.user.id);
+  const canAct = isPlatformAdmin
+    || !!wsMember
+    || (orgMember && (orgMember.role === 'org_owner' || orgMember.role === 'org_admin'));
+
+  if (!canAct) return res.status(403).json({ error: 'Access denied to that workspace' });
+
+  const token = generateToken(req.user, ws.id);
+  res.json({ token, current_workspace_id: ws.id });
 });
 
 // Update current user
@@ -270,9 +364,9 @@ router.put('/me', requireAuth, (req, res) => {
   res.json(user);
 });
 
-// List users - superadmins see all, admins see team members only
+// List users - platform admins see all, admins see team members only
 router.get('/users', requireAuth, requireAdmin, (req, res) => {
-  if (req.user.role === 'superadmin') {
+  if (PLATFORM_ROLES.includes(req.user.role)) {
     const users = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, created_at, last_login FROM users ORDER BY created_at ASC').all();
     res.json(users);
   } else {
@@ -322,9 +416,9 @@ router.put('/users/:id/password', requireAuth, requireAdmin, (req, res) => {
     return res.status(400).json({ error: `User signs in via ${target.auth_provider} — password reset does not apply` });
   }
 
-  if (req.user.role !== 'superadmin') {
+  if (!PLATFORM_ROLES.includes(req.user.role)) {
     // Admin path: must own a team that includes the target, and target must
-    // be a regular user (cannot reset another admin's or a superadmin's
+    // be a regular user (cannot reset another admin's or a platform_admin's
     // password — that would be a lateral-takeover vector).
     if (target.role !== 'user') {
       return res.status(403).json({ error: 'Admins can only reset passwords for regular users' });

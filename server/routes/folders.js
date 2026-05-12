@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
+const { PLATFORM_ROLES } = require('../middleware/auth');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -22,7 +23,7 @@ function ownedFolder(req, folderId) {
   if (!UUID_RE.test(folderId)) return null;
   const row = db.prepare('SELECT * FROM content_folders WHERE id = ?').get(folderId);
   if (!row) return null;
-  const isSuperadmin = req.user.role === 'superadmin';
+  const isSuperadmin = PLATFORM_ROLES.includes(req.user.role);
   if (!isSuperadmin && row.user_id !== req.user.id) return null;
   return row;
 }
@@ -30,7 +31,7 @@ function ownedFolder(req, folderId) {
 // List folders for the current user. Returns the full tree as a flat array;
 // the client builds the hierarchy from parent_id.
 router.get('/', (req, res) => {
-  const isAdmin = req.user.role === 'superadmin';
+  const isAdmin = PLATFORM_ROLES.includes(req.user.role);
   const rows = isAdmin
     ? db.prepare('SELECT * FROM content_folders ORDER BY name COLLATE NOCASE').all()
     : db.prepare('SELECT * FROM content_folders WHERE user_id = ? ORDER BY name COLLATE NOCASE').all(req.user.id);
@@ -43,7 +44,7 @@ router.post('/', (req, res) => {
   if (!name) return res.status(400).json({ error: 'name is required' });
   if (name.length > 100) return res.status(400).json({ error: 'name too long' });
 
-  const isSuperadmin = req.user.role === 'superadmin';
+  const isSuperadmin = PLATFORM_ROLES.includes(req.user.role);
   if (!isSuperadmin) {
     const { count } = db.prepare('SELECT COUNT(*) AS count FROM content_folders WHERE user_id = ?').get(req.user.id);
     if (count >= MAX_FOLDERS_PER_USER) {

@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../db/database');
+const { PLATFORM_ROLES, ELEVATED_ROLES } = require('../middleware/auth');
 
 // Helper: scope reports to user's devices
 function getUserDeviceFilter(user) {
-  if (user.role === 'superadmin') return { sql: '', params: [] };
+  if (PLATFORM_ROLES.includes(user.role)) return { sql: '', params: [] };
   return { sql: ' AND d.user_id = ?', params: [user.id] };
 }
 
@@ -38,7 +39,7 @@ router.get('/summary', (req, res) => {
   let deviceFilter = '';
   const params = [startEpoch, endEpoch];
   // Scope to user's devices (non-admin)
-  if (!['admin','superadmin'].includes(req.user.role)) {
+  if (!ELEVATED_ROLES.includes(req.user.role)) {
     deviceFilter += ' AND device_id IN (SELECT id FROM devices WHERE user_id = ?)';
     params.push(req.user.id);
   }

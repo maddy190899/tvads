@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { showToast } from '../components/toast.js';
 import { getLanguage, setLanguage, getAvailableLanguages, t, tn } from '../i18n.js';
-import { esc } from '../utils.js';
+import { esc, isPlatformAdmin } from '../utils.js';
 import { resetBranding } from '../branding.js';
 
 export async function render(container) {
@@ -11,7 +11,7 @@ export async function render(container) {
   let user;
   try { user = await api.getMe(); localStorage.setItem('user', JSON.stringify(user)); }
   catch { user = JSON.parse(localStorage.getItem('user') || '{}'); }
-  const isSuperAdmin = user.role === 'superadmin';
+  const isSuperAdmin = isPlatformAdmin(user);
   const isAdmin = user.role === 'admin' || isSuperAdmin;
 
   container.innerHTML = `
@@ -327,11 +327,11 @@ async function loadWhiteLabel() {
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Only show white-label for enterprise/superadmin.
+  // Only show white-label for enterprise plans or platform admins.
   // Use the fresh user cached by render() above, which called api.getMe().
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const section = document.getElementById('whiteLabelSection');
-  if (section && user.plan_id !== 'enterprise' && user.role !== 'superadmin') {
+  if (section && user.plan_id !== 'enterprise' && !isPlatformAdmin(user)) {
     section.innerHTML = `
       <h3>${t('settings.white_label')}</h3>
       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">

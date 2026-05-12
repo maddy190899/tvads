@@ -8,6 +8,7 @@ const upload = require('../middleware/upload');
 const config = require('../config');
 const { checkStorageLimit, checkRemoteUrl } = require('../middleware/subscription');
 const { sanitizeString } = require('../middleware/sanitize');
+const { PLATFORM_ROLES, ELEVATED_ROLES } = require('../middleware/auth');
 
 // Multer captures file.originalname directly from the multipart filename header,
 // bypassing sanitizeBody. Apply the same HTML-escape here so a filename like
@@ -42,7 +43,7 @@ function validateRemoteUrl(url) {
 // List content for current user (admins see all).
 // folder_id filter: omit for everything; "root" or "" for root-level only; <uuid> for that folder.
 router.get('/', (req, res) => {
-  const isAdmin = req.user.role === 'superadmin';
+  const isAdmin = PLATFORM_ROLES.includes(req.user.role);
   const folder = req.query.folder;
   const folderId = req.query.folder_id;
   let sql = `SELECT * FROM content ${isAdmin ? 'WHERE 1=1' : 'WHERE (user_id = ? OR user_id IS NULL)'}`;
@@ -64,7 +65,7 @@ router.get('/', (req, res) => {
 
 // Get folders list
 router.get('/folders', (req, res) => {
-  const isAdmin = req.user.role === 'superadmin';
+  const isAdmin = PLATFORM_ROLES.includes(req.user.role);
   const folders = db.prepare(
     `SELECT folder, COUNT(*) as count FROM content WHERE folder IS NOT NULL ${isAdmin ? '' : 'AND (user_id = ? OR user_id IS NULL)'} GROUP BY folder ORDER BY folder`
   ).all(...(isAdmin ? [] : [req.user.id]));
@@ -218,7 +219,7 @@ function extractYoutubeId(url) {
 function checkContentAccess(req, res) {
   const content = db.prepare('SELECT * FROM content WHERE id = ?').get(req.params.id);
   if (!content) { res.status(404).json({ error: 'Content not found' }); return null; }
-  if (!['admin','superadmin'].includes(req.user.role) && content.user_id && content.user_id !== req.user.id) {
+  if (!ELEVATED_ROLES.includes(req.user.role) && content.user_id && content.user_id !== req.user.id) {
     res.status(403).json({ error: 'Access denied' }); return null;
   }
   return content;
@@ -257,7 +258,7 @@ router.put('/:id', (req, res) => {
     if (folder_id) {
       const target = db.prepare('SELECT user_id FROM content_folders WHERE id = ?').get(folder_id);
       if (!target) return res.status(400).json({ error: 'Invalid folder_id' });
-      const isSuperadmin = req.user.role === 'superadmin';
+      const isSuperadmin = PLATFORM_ROLES.includes(req.user.role);
       if (!isSuperadmin && target.user_id !== req.user.id) {
         return res.status(403).json({ error: 'Cannot move content to another user\'s folder' });
       }

@@ -20,6 +20,7 @@ import * as designer from './views/designer.js';
 import * as playlists from './views/playlists.js';
 import { applyBranding } from './branding.js';
 import { t } from './i18n.js';
+import { isPlatformAdmin } from './utils.js';
 
 const app = document.getElementById('app');
 const sidebar = document.querySelector('.sidebar');
@@ -227,9 +228,9 @@ function updateSidebarUser() {
   const user = getCurrentUser();
   if (!user) return;
 
-  // Show admin nav only for superadmins
+  // Show admin nav only for platform admins (legacy 'superadmin' or Phase 1 renamed 'platform_admin')
   const adminNav = document.getElementById('adminNavItem');
-  if (adminNav) adminNav.style.display = user.role === 'superadmin' ? '' : 'none';
+  if (adminNav) adminNav.style.display = isPlatformAdmin(user) ? '' : 'none';
 
   let userEl = document.getElementById('sidebarUser');
   if (!userEl) {
