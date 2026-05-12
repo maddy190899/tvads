@@ -107,9 +107,12 @@ export async function render(container) {
           <div class="form-group"><label>${t('schedule.priority')}</label><input type="number" id="schedPriority" class="input" value="0" min="0" max="100"></div>
           <div class="form-group"><label>${t('schedule.color')}</label><input type="color" id="schedColor" value="#3B82F6" style="width:60px;height:32px;border:none;cursor:pointer"></div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="document.getElementById('scheduleModal').style.display='none'">${t('common.cancel')}</button>
-          <button class="btn btn-primary" id="saveScheduleBtn">${t('common.save')}</button>
+        <div class="modal-footer" style="display:flex;justify-content:space-between;gap:8px">
+          <button class="btn btn-danger" id="deleteScheduleBtn" style="display:none">${t('common.delete')}</button>
+          <div style="display:flex;gap:8px;margin-left:auto">
+            <button class="btn btn-secondary" onclick="document.getElementById('scheduleModal').style.display='none'">${t('common.cancel')}</button>
+            <button class="btn btn-primary" id="saveScheduleBtn">${t('common.save')}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -223,6 +226,7 @@ export async function render(container) {
     }
     updateTargetVisibility();
 
+    document.getElementById('deleteScheduleBtn').style.display = '';
     document.getElementById('scheduleModal').style.display = 'flex';
   }
 
@@ -236,7 +240,21 @@ export async function render(container) {
     deviceRadio.checked = true;
     deviceSelect.value = document.getElementById('schedDevice').value;
     updateTargetVisibility();
+    document.getElementById('deleteScheduleBtn').style.display = 'none';
     document.getElementById('scheduleModal').style.display = 'flex';
+  };
+
+  document.getElementById('deleteScheduleBtn').onclick = async () => {
+    if (!editingId) return;
+    if (!confirm(t('schedule.confirm_delete') || 'Delete this schedule?')) return;
+    try {
+      await API(`/schedules/${editingId}`, { method: 'DELETE' });
+      document.getElementById('scheduleModal').style.display = 'none';
+      showToast(t('schedule.toast.deleted') || 'Schedule deleted', 'success');
+      loadCalendar();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   };
 
   document.getElementById('saveScheduleBtn').onclick = async () => {
