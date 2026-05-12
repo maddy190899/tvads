@@ -3,19 +3,27 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
 const { PLATFORM_ROLES, ELEVATED_ROLES } = require('../middleware/auth');
+// Phase 2.2h: workspace-aware access. Templates (is_template=1) are the
+// platform-shared pair (NULL user_id, NULL workspace_id) and are visible
+// everywhere, writable only by platform_admin.
+const { accessContext } = require('../lib/tenancy');
 
-// List layouts (user's + templates)
+// List layouts in the caller's current workspace plus all templates.
+// Phase 2.2h: workspace-scoped. Templates (is_template=1) remain visible to
+// everyone; cross-workspace owned-layout visibility comes from switch-workspace.
 router.get('/', (req, res) => {
   const showTemplates = req.query.templates === 'true';
-  const isAdmin = PLATFORM_ROLES.includes(req.user.role);
 
   let layouts;
   if (showTemplates) {
     layouts = db.prepare('SELECT * FROM layouts WHERE is_template = 1 ORDER BY template_category, name').all();
+  } else if (!req.workspaceId) {
+    // No workspace context -> only templates are visible.
+    layouts = db.prepare('SELECT * FROM layouts WHERE is_template = 1 ORDER BY template_category, name').all();
   } else {
     layouts = db.prepare(
-      `SELECT * FROM layouts WHERE (user_id = ? OR is_template = 1) ${isAdmin ? 'OR 1=1' : ''} ORDER BY is_template DESC, created_at DESC`
-    ).all(req.user.id);
+      'SELECT * FROM layouts WHERE (workspace_id = ? OR is_template = 1) ORDER BY is_template DESC, created_at DESC'
+    ).all(req.workspaceId);
   }
 
   // Attach zones to each layout
@@ -25,33 +33,64 @@ router.get('/', (req, res) => {
   res.json(layouts);
 });
 
-// Helper: check layout access (owner, admin, or template)
-function checkLayoutAccess(req, res) {
+// Phase 2.2h: workspace-aware access. Mirrors content/widget/kiosk helpers.
+// Templates (is_template=1) are readable by anyone authenticated; writable
+// only by platform_admin (kept layered with the existing L78/L94 guards).
+function checkLayoutRead(req, res) {
   const layout = db.prepare('SELECT * FROM layouts WHERE id = ?').get(req.params.id);
   if (!layout) { res.status(404).json({ error: 'Layout not found' }); return null; }
-  if (!layout.is_template && !ELEVATED_ROLES.includes(req.user.role) && layout.user_id !== req.user.id) {
-    res.status(403).json({ error: 'Access denied' }); return null;
+  if (layout.is_template) return layout;
+  if (!layout.workspace_id) {
+    // Owned row with no workspace - treat as inaccessible (shouldn't exist post-migration).
+    res.status(403).json({ error: 'Layout not assigned to a workspace' }); return null;
+  }
+  const ws = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(layout.workspace_id);
+  const ctx = ws && accessContext(req.user.id, req.user.role, ws);
+  if (!ctx) { res.status(403).json({ error: 'Access denied' }); return null; }
+  return layout;
+}
+
+function checkLayoutWrite(req, res) {
+  const layout = db.prepare('SELECT * FROM layouts WHERE id = ?').get(req.params.id);
+  if (!layout) { res.status(404).json({ error: 'Layout not found' }); return null; }
+  if (layout.is_template) {
+    // Templates: only platform_admin may write. Existing L78/L94 also check
+    // is_template explicitly with the same intent; this is the layered gate.
+    if (!PLATFORM_ROLES.includes(req.user.role)) {
+      res.status(403).json({ error: 'Platform admin required to modify templates' }); return null;
+    }
+    return layout;
+  }
+  if (!layout.workspace_id) {
+    res.status(403).json({ error: 'Layout not assigned to a workspace' }); return null;
+  }
+  const ws = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(layout.workspace_id);
+  const ctx = ws && accessContext(req.user.id, req.user.role, ws);
+  if (!ctx) { res.status(403).json({ error: 'Access denied' }); return null; }
+  if (!ctx.actingAs && ctx.workspaceRole === 'workspace_viewer') {
+    res.status(403).json({ error: 'Read-only access' }); return null;
   }
   return layout;
 }
 
 // Get layout with zones
 router.get('/:id', (req, res) => {
-  const layout = checkLayoutAccess(req, res);
+  const layout = checkLayoutRead(req, res);
   if (!layout) return;
 
   layout.zones = db.prepare('SELECT * FROM layout_zones WHERE layout_id = ? ORDER BY sort_order').all(layout.id);
   res.json(layout);
 });
 
-// Create layout
+// Create layout in the caller's current workspace.
 router.post('/', (req, res) => {
+  if (!req.workspaceId) return res.status(403).json({ error: 'No workspace context. Switch to a workspace before creating layouts.' });
   const { name, width, height, zones } = req.body;
   if (!name) return res.status(400).json({ error: 'name required' });
 
   const id = uuidv4();
-  db.prepare('INSERT INTO layouts (id, user_id, name, width, height) VALUES (?, ?, ?, ?, ?)')
-    .run(id, req.user.id, name, width || 1920, height || 1080);
+  db.prepare('INSERT INTO layouts (id, user_id, workspace_id, name, width, height) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(id, req.user.id, req.workspaceId, name, width || 1920, height || 1080);
 
   // Create zones if provided
   if (zones && Array.isArray(zones)) {
@@ -73,9 +112,9 @@ router.post('/', (req, res) => {
 
 // Update layout
 router.put('/:id', (req, res) => {
-  const layout = checkLayoutAccess(req, res);
+  const layout = checkLayoutWrite(req, res);
   if (!layout) return;
-  if (layout.is_template && !ELEVATED_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Cannot edit templates' });
+  if (layout.is_template && !PLATFORM_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Cannot edit templates' });
 
   const { name, width, height } = req.body;
   if (name) db.prepare('UPDATE layouts SET name = ?, updated_at = strftime(\'%s\',\'now\') WHERE id = ?').run(name, req.params.id);
@@ -89,17 +128,18 @@ router.put('/:id', (req, res) => {
 
 // Delete layout
 router.delete('/:id', (req, res) => {
-  const layout = checkLayoutAccess(req, res);
+  const layout = checkLayoutWrite(req, res);
   if (!layout) return;
-  if (layout.is_template && !ELEVATED_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Cannot delete templates' });
+  if (layout.is_template && !PLATFORM_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Cannot delete templates' });
 
   db.prepare('DELETE FROM layouts WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
-// Add zone to layout
+// Add zone to layout. Phase 2.2h: tightened to write-access; workspace_viewer
+// can read the layout via GET but cannot add zones.
 router.post('/:id/zones', (req, res) => {
-  const layout = checkLayoutAccess(req, res);
+  const layout = checkLayoutWrite(req, res);
   if (!layout) return;
 
   const { name, x_percent, y_percent, width_percent, height_percent, z_index, zone_type, fit_mode, background_color } = req.body;
@@ -121,7 +161,7 @@ router.post('/:id/zones', (req, res) => {
 
 // Update zone
 router.put('/:id/zones/:zoneId', (req, res) => {
-  const layout = checkLayoutAccess(req, res);
+  const layout = checkLayoutWrite(req, res);
   if (!layout) return;
   const zone = db.prepare('SELECT * FROM layout_zones WHERE id = ? AND layout_id = ?').get(req.params.zoneId, req.params.id);
   if (!zone) return res.status(404).json({ error: 'Zone not found' });
@@ -145,23 +185,25 @@ router.put('/:id/zones/:zoneId', (req, res) => {
 
 // Delete zone
 router.delete('/:id/zones/:zoneId', (req, res) => {
-  const layout = checkLayoutAccess(req, res);
+  const layout = checkLayoutWrite(req, res);
   if (!layout) return;
   db.prepare('DELETE FROM layout_zones WHERE id = ? AND layout_id = ?').run(req.params.zoneId, req.params.id);
   db.prepare("UPDATE layouts SET updated_at = strftime('%s','now') WHERE id = ?").run(req.params.id);
   res.json({ success: true });
 });
 
-// Duplicate layout (for using templates)
+// Duplicate layout (for using templates). Source needs read-access only;
+// destination lands in the caller's current workspace.
 router.post('/:id/duplicate', (req, res) => {
-  const source = checkLayoutAccess(req, res);
+  if (!req.workspaceId) return res.status(403).json({ error: 'No workspace context. Switch to a workspace before duplicating a layout.' });
+  const source = checkLayoutRead(req, res);
   if (!source) return;
 
   const newId = uuidv4();
   const name = req.body.name || `${source.name} (Copy)`;
 
-  db.prepare('INSERT INTO layouts (id, user_id, name, width, height) VALUES (?, ?, ?, ?, ?)')
-    .run(newId, req.user.id, name, source.width, source.height);
+  db.prepare('INSERT INTO layouts (id, user_id, workspace_id, name, width, height) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(newId, req.user.id, req.workspaceId, name, source.width, source.height);
 
   // Copy zones
   const zones = db.prepare('SELECT * FROM layout_zones WHERE layout_id = ?').all(req.params.id);
@@ -179,12 +221,38 @@ router.post('/:id/duplicate', (req, res) => {
   res.status(201).json(layout);
 });
 
-// Assign layout to device
+// Assign layout to device.
+// Phase 2.2h: closes a pre-existing cross-tenant leak. Today the route only
+// gated by device-ownership and didn't verify the layout_id at all, so any
+// caller with write access to a device could assign another workspace's
+// layout to it - the player would then render foreign zones/dimensions.
+//
+// New rules:
+//   1. Caller must have write access to the DEVICE's workspace.
+//   2. The layout must be either a template (is_template=1) or live in the
+//      same workspace as the device.
 router.put('/device/:deviceId', (req, res) => {
-  const device = db.prepare('SELECT user_id FROM devices WHERE id = ?').get(req.params.deviceId);
+  const device = db.prepare('SELECT user_id, workspace_id FROM devices WHERE id = ?').get(req.params.deviceId);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  if (!ELEVATED_ROLES.includes(req.user.role) && device.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+  if (!device.workspace_id) return res.status(403).json({ error: 'Device not assigned to a workspace' });
+
+  const deviceWs = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(device.workspace_id);
+  const ctx = deviceWs && accessContext(req.user.id, req.user.role, deviceWs);
+  if (!ctx) return res.status(403).json({ error: 'Access denied' });
+  if (!ctx.actingAs && ctx.workspaceRole === 'workspace_viewer') {
+    return res.status(403).json({ error: 'Read-only access' });
+  }
+
   const { layout_id } = req.body;
+  if (layout_id) {
+    const layout = db.prepare('SELECT is_template, workspace_id FROM layouts WHERE id = ?').get(layout_id);
+    if (!layout) return res.status(400).json({ error: 'Invalid layout_id' });
+    // Layout must be a template, or live in the device's workspace.
+    if (!layout.is_template && layout.workspace_id !== device.workspace_id) {
+      return res.status(403).json({ error: 'Layout is not in this device\'s workspace and is not a template' });
+    }
+  }
+
   db.prepare("UPDATE devices SET layout_id = ?, updated_at = strftime('%s','now') WHERE id = ?")
     .run(layout_id || null, req.params.deviceId);
   res.json({ success: true });

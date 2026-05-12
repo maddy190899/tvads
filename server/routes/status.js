@@ -344,7 +344,7 @@ router.post('/import', importUpload.single('file'), async (req, res) => {
     for (const l of (data.layouts || [])) {
       const newId = uuid.v4();
       idMap.layouts[l.id] = newId;
-      db.prepare(`INSERT INTO layouts (id, user_id, name, width, height, is_template, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)`).run(newId, userId, l.name, l.width || 1920, l.height || 1080, l.created_at || Math.floor(Date.now() / 1000));
+      db.prepare(`INSERT INTO layouts (id, user_id, workspace_id, name, width, height, is_template, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?)`).run(newId, userId, workspaceId, l.name, l.width || 1920, l.height || 1080, l.created_at || Math.floor(Date.now() / 1000));
       stats.layouts++;
     }
     for (const z of (data.layout_zones || [])) {
