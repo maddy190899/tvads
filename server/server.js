@@ -43,7 +43,9 @@ const io = new Server(server, {
     origin: (origin, cb) => corsOriginCheck(origin, cb),
     credentials: true,
   },
-  maxHttpBufferSize: 10 * 1024 * 1024 // 10MB for screenshot uploads
+  maxHttpBufferSize: 10 * 1024 * 1024, // 10MB for screenshot uploads
+  pingInterval: config.pingInterval,
+  pingTimeout: config.pingTimeout,
 });
 
 // Middleware

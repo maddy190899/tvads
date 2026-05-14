@@ -10,6 +10,12 @@ module.exports = {
   frontendDir: path.join(__dirname, '..', 'frontend'),
   heartbeatInterval: 10000,    // Check every 10s
   heartbeatTimeout: 45000,     // Offline after 45s (3 missed 15s beats)
+  // Engine.IO transport-level ping/pong. Raised from Socket.IO defaults
+  // (25000/20000) because TV WebKits (LG webOS, older Tizen) miss pongs
+  // under decode load - tighter values cause spurious transport drops.
+  // Worst-case dead-socket detection: pingInterval + pingTimeout = 60s.
+  pingInterval: parseInt(process.env.PING_INTERVAL) || 30000,
+  pingTimeout:  parseInt(process.env.PING_TIMEOUT)  || 30000,
   maxFileSize: 500 * 1024 * 1024, // 500MB
   thumbnailWidth: 320,
   screenshotQuality: 70,
