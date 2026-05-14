@@ -14,6 +14,10 @@ module.exports = {
   // reporter found raising HEARTBEAT_TIMEOUT to 60s reduced false offlines).
   heartbeatInterval: parseInt(process.env.HEARTBEAT_INTERVAL) || 10000,
   heartbeatTimeout:  parseInt(process.env.HEARTBEAT_TIMEOUT)  || 45000,
+  // How long the server holds commands/playlist-updates for a device that's
+  // offline at emit time (ms). On reconnect within this window, queued events
+  // are flushed in order. Past TTL they're dropped. See lib/command-queue.js.
+  commandQueueTtlMs: parseInt(process.env.COMMAND_QUEUE_TTL_MS) || 30000,
   // Engine.IO transport-level ping/pong. Raised from Socket.IO defaults
   // (25000/20000) because TV WebKits (LG webOS, older Tizen) miss pongs
   // under decode load - tighter values cause spurious transport drops.

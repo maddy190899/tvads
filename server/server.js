@@ -436,6 +436,10 @@ app.set('io', io);
 const { startHeartbeatChecker } = require('./services/heartbeat');
 startHeartbeatChecker(io);
 
+// Start command-queue sweep (prunes expired entries for offline devices)
+const commandQueue = require('./lib/command-queue');
+commandQueue.startSweep();
+
 // Start scheduler
 const { startScheduler } = require('./services/scheduler');
 startScheduler(io);

@@ -5,6 +5,7 @@ const fs = require('fs');
 const { db, pruneTelemetry, pruneScreenshots } = require('../db/database');
 const config = require('../config');
 const heartbeat = require('../services/heartbeat');
+const commandQueue = require('../lib/command-queue');
 const { getUserPlan, getUserDeviceCount } = require('../middleware/subscription');
 // Phase 2.3: deviceRoom() resolves a device_id to its workspace room so
 // dashboardNs.emit can be scoped instead of broadcast platform-wide.
@@ -255,6 +256,8 @@ module.exports = function setupDeviceSocket(io) {
                 socket.join(existing.device_id);
                 logDeviceStatus(existing.device_id, 'online');
                 emitToDeviceWorkspace(dashboardNs, existing.device_id, 'dashboard:device-status', { device_id: existing.device_id, status: 'online' });
+                // Flush any commands/playlist-updates queued while this device was offline.
+                commandQueue.flushQueue(deviceNs, existing.device_id, buildPlaylistPayload);
                 // Send playlist
                 const access = checkDeviceAccess(existing.device_id);
                 if (!access.allowed) {
@@ -307,6 +310,8 @@ module.exports = function setupDeviceSocket(io) {
           socket.join(device_id);
           socket.emit('device:registered', { device_id, device_token: tokenToSend, status: 'online' });
           logDeviceStatus(device_id, 'online');
+          // Flush any commands/playlist-updates queued while this device was offline.
+          commandQueue.flushQueue(deviceNs, device_id, buildPlaylistPayload);
 
           // If this device is part of a wall, re-evaluate leadership.
           // Preferred leader = online member with smallest (canvas_x +
@@ -333,7 +338,7 @@ module.exports = function setupDeviceSocket(io) {
                     const members = db.prepare('SELECT device_id FROM video_wall_devices WHERE wall_id = ?').all(wall.id);
                     for (const m of members) {
                       if (m.device_id !== device_id) {
-                        deviceNs.to(m.device_id).emit('device:playlist-update', buildPlaylistPayload(m.device_id));
+                        commandQueue.queueOrEmitPlaylistUpdate(deviceNs, m.device_id, buildPlaylistPayload);
                       }
                     }
                   }
@@ -595,7 +600,7 @@ module.exports = function setupDeviceSocket(io) {
             const members = db.prepare('SELECT device_id FROM video_wall_devices WHERE wall_id = ?').all(wall.id);
             for (const m of members) {
               if (m.device_id !== currentDeviceId) {
-                deviceNs.to(m.device_id).emit('device:playlist-update', buildPlaylistPayload(m.device_id));
+                commandQueue.queueOrEmitPlaylistUpdate(deviceNs, m.device_id, buildPlaylistPayload);
               }
             }
           }
