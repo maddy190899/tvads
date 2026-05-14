@@ -588,12 +588,6 @@
         emitWallSync();
       });
 
-      socket.on('device:content-delete', (data) => {
-        playlist = playlist.filter(p => p.content_id !== data.content_id);
-        savePlaylistCache(playlist);
-        if (playlist.length === 0) showStatus('Waiting for content...');
-      });
-
       socket.on('device:screenshot-request', () => { console.log('Screenshot requested'); captureAndSend(); });
       socket.on('device:remote-start', () => { console.log('Remote start received'); remoteStreaming = true; startStreaming(); });
       socket.on('device:remote-stop', () => { console.log('Remote stop received'); remoteStreaming = false; stopStreaming(); });
@@ -910,10 +904,17 @@
       }
 
       console.log('Playlist changed, updating');
+      // Capture old state BEFORE mutating so continuity logic can find what was playing.
+      const identityOf = (x) => x ? `${x.content_id || ''}|${x.widget_id || ''}|${x.remote_url || ''}|${x.filepath || ''}` : '';
+      const oldPlaylist = playlist;
+      const oldAnchorIdx = currentIndex;
+      const oldAnchorId = identityOf(oldPlaylist[oldAnchorIdx]);
+
       playlist = newItems;
       savePlaylistCache(playlist);
 
       if (playlist.length === 0) {
+        teardownCurrentMedia();
         showStatus('Waiting for content...');
         isPlaying = false;
         return;
@@ -921,23 +922,51 @@
 
       document.getElementById('setupScreen').style.display = 'none';
 
-      // Always restart playback when content changes
-      currentIndex = 0;
+      // Continuity: if the playing item survives the update, keep playing it.
+      // Just retarget the index pointer - no re-render, no interrupt. It will
+      // advance naturally via onended -> nextItem.
+      if (oldAnchorId && oldAnchorId !== '|||') {
+        const stillThereIdx = playlist.findIndex(x => identityOf(x) === oldAnchorId);
+        if (stillThereIdx !== -1) {
+          currentIndex = stillThereIdx;
+          isPlaying = true;
+          return;
+        }
+      }
+
+      // Anchor is gone. Walk forward from the OLD position through the old playlist,
+      // pick the first item that still exists in the new one. Preserves "what was
+      // scheduled to play next, that still exists". Wraps past the end naturally.
+      let nextIdx = -1;
+      if (oldPlaylist.length > 0 && Number.isFinite(oldAnchorIdx)) {
+        for (let i = 1; i <= oldPlaylist.length; i++) {
+          const probe = oldPlaylist[(oldAnchorIdx + i) % oldPlaylist.length];
+          const probeId = identityOf(probe);
+          if (!probeId || probeId === '|||') continue;
+          const found = playlist.findIndex(x => identityOf(x) === probeId);
+          if (found !== -1) { nextIdx = found; break; }
+        }
+      }
+      if (nextIdx === -1) nextIdx = 0;
+
+      currentIndex = nextIdx;
       isPlaying = true;
       playCurrentItem();
     }
 
     function playCurrentItem() {
-      if (currentIndex < 0 || currentIndex >= playlist.length) {
-        currentIndex = 0;
-        if (playlist.length === 0) { showStatus('Waiting for content...'); return; }
+      if (!playlist.length || !Number.isFinite(currentIndex)) {
+        teardownCurrentMedia();
+        showStatus('Waiting for content...');
+        isPlaying = false;
+        return;
       }
+      if (currentIndex < 0 || currentIndex >= playlist.length) currentIndex = 0;
 
       hideStatus();
       const item = playlist[currentIndex];
       console.log('Playing:', item.filename, `(${currentIndex + 1}/${playlist.length})`);
       currentItemStartedAt = Date.now();
-      currentVideoEl = null;
 
       // Only the leader (or single, non-walled players) records a play_start —
       // followers would just spam duplicate proof-of-play rows for the same item.
@@ -1107,13 +1136,46 @@
       return playerDiv;
     }
 
-    function renderContent(item) {
-      // Clear any pending advance timer from previous content (image/widget duration timers)
+    // Stop and release all media in the player. pause() alone leaves the decoder
+    // buffering on some browsers; removeAttribute('src') + load() is what actually
+    // releases the decoder and kills audio. Null event handlers so a late onended
+    // can't fire into a stale playlist state. Queries all <video> elements so
+    // zone-mode (multi-region) videos get cleaned up too, not just currentVideoEl.
+    function teardownCurrentMedia() {
       if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+      const container = document.getElementById('playerContainer');
+      if (container) {
+        container.querySelectorAll('video').forEach(v => {
+          try {
+            v.onended = null; v.onerror = null; v.onloadeddata = null;
+            v.pause();
+            v.removeAttribute('src');
+            v.load();
+          } catch (e) { /* element may already be detached */ }
+        });
+        container.innerHTML = '';
+      }
+      currentVideoEl = null;
+    }
+
+    function renderContent(item) {
+      teardownCurrentMedia();
 
       const container = document.getElementById('playerContainer');
       container.style.display = 'block';
-      container.innerHTML = '';
+
+      // Defense in depth: bail to waiting state on missing/malformed item rather
+      // than fall through every branch and leave a blank container.
+      const hasRenderableType = item && (
+        item.widget_id ||
+        item.mime_type === 'video/youtube' ||
+        (typeof item.mime_type === 'string' && (item.mime_type.startsWith('video/') || item.mime_type.startsWith('image/')))
+      );
+      if (!hasRenderableType) {
+        showStatus('Waiting for content...');
+        isPlaying = false;
+        return;
+      }
 
       // In wall mode, mount content into a stage that maps the player_rect
       // into this device's viewport. playerContainer's overflow:hidden clips
