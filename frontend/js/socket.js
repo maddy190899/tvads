@@ -4,7 +4,11 @@ const listeners = new Map();
 export function connectSocket() {
   const token = localStorage.getItem('token');
   dashboardSocket = io('/dashboard', {
-    auth: { token }
+    auth: { token },
+    // Prefer WebSocket; fall back to polling on the same connect attempt.
+    // Mirrors the player-side fix in 1aee4f2 - skips the polling->WS upgrade
+    // dance that was causing the dashboard socket to flicker on Apply.
+    transports: ['websocket', 'polling']
   });
 
   dashboardSocket.on('connect', () => {
