@@ -265,8 +265,11 @@ router.post('/:id/invites', async (req, res) => {
   // always carry the canonical origin. Falls back to request-derived for
   // local dev and when PUBLIC_URL isn't set; with trust proxy on, req.protocol
   // + req.get('host') reflect Cloudflare-forwarded X-Forwarded-Proto + Host.
+  // Path is /app#/accept-invite/<id> - the SPA lives at /app, so a bare
+  // /#/accept-invite/<id> would land on the marketing landing page in dev
+  // (and rely on the DISABLE_HOMEPAGE redirect in prod). /app is explicit.
   const publicBase = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
-  const acceptUrl = `${publicBase}/#/accept-invite/${inviteId}`;
+  const acceptUrl = `${publicBase}/app#/accept-invite/${inviteId}`;
   const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(ws.organization_id);
   const { subject, text } = buildInviteEmail({
     workspaceName: ws.name,

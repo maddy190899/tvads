@@ -163,6 +163,9 @@ export const api = {
   getWorkspaceMembers: (id) => request(`/workspaces/${id}/members`),
   getWorkspaceInvites: (id) => request(`/workspaces/${id}/invites`),
 
+  // Slice 2C - accept a workspace invite by id (post-auth flow)
+  acceptInvite: (inviteId) => request(`/auth/accept-invite/${inviteId}`, { method: 'POST' }),
+
   // Admin - Users
   getUsers: () => request('/auth/users'),
   deleteUser: (id) => request(`/auth/users/${id}`, { method: 'DELETE' }),

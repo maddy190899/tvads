@@ -24,10 +24,135 @@ import { applyBranding } from './branding.js';
 import { t } from './i18n.js';
 import { isPlatformAdmin } from './utils.js';
 import { renderWorkspaceSwitcher } from './components/workspace-switcher.js';
+import { showToast } from './components/toast.js';
+import { api } from './api.js';
 
 const app = document.getElementById('app');
 const sidebar = document.querySelector('.sidebar');
 let currentView = null;
+
+// ==================== Slice 2C: accept-invite plumbing ====================
+//
+// Flow shape (covers all six auth entry points - login, register, support,
+// Google, Microsoft, first-user-setup - because they all funnel through
+// onAuthSuccess() in login.js which calls window.location.reload()):
+//
+//   1. Hash route #/accept-invite/{id}:
+//      - unauthed: stash inviteId in localStorage, redirect to login
+//      - authed:   call consumeAcceptInvite() directly (no stash)
+//   2. App boot (every route() call once auth checks pass): if a valid
+//      non-stale stash is present, fire consumeAcceptInvite. After login
+//      reload lands here and picks it up automatically.
+//   3. consumeAcceptInvite on success: stash toast text, switch workspace,
+//      reload. Reload re-fires route() which picks up the toast stash and
+//      shows it on dashboard. Reload is needed for the new JWT/socket/
+//      sidebar /me to pick up the new workspace context.
+//   4. consumeAcceptInvite on error: showToast directly + clear stash.
+//      No reload (no state change to propagate).
+
+const PENDING_INVITE_KEY = 'pending_invite';
+const PENDING_INVITE_TOAST_KEY = 'pending_invite_toast';
+// Mirrors the backend INVITE_EXPIRY_DAYS default (7). If an operator changes
+// the backend default, this should be updated to match - tracked in handoff.
+const INVITE_EXPIRY_DAYS_FRONTEND = 7;
+
+// Non-reentrant guard: route() can fire multiple times (hashchange events).
+// Once consume is in flight, additional calls no-op until reload completes.
+let _acceptInFlight = false;
+
+function stashPendingInvite(inviteId) {
+  localStorage.setItem(PENDING_INVITE_KEY, JSON.stringify({
+    inviteId,
+    stashedAt: Math.floor(Date.now() / 1000),
+  }));
+}
+
+function readPendingInvite() {
+  const raw = localStorage.getItem(PENDING_INVITE_KEY);
+  if (!raw) return null;
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch { localStorage.removeItem(PENDING_INVITE_KEY); return null; }
+  if (!parsed?.inviteId || !parsed?.stashedAt) {
+    localStorage.removeItem(PENDING_INVITE_KEY);
+    return null;
+  }
+  const ageSecs = Math.floor(Date.now() / 1000) - parsed.stashedAt;
+  if (ageSecs > INVITE_EXPIRY_DAYS_FRONTEND * 86400) {
+    localStorage.removeItem(PENDING_INVITE_KEY);
+    return null;
+  }
+  return parsed.inviteId;
+}
+
+function clearPendingInvite() {
+  localStorage.removeItem(PENDING_INVITE_KEY);
+}
+
+// Map backend error message text to a translated toast string. We match
+// English text because api.js doesn't surface HTTP status codes today;
+// refactor to err.status when that lands - tracked in handoff doc.
+function mapAcceptError(err) {
+  const msg = err?.message || '';
+  if (/Invite not found/i.test(msg)) return t('accept.error.not_found');
+  if (/Invite has expired|Workspace no longer exists/i.test(msg)) return t('accept.error.expired');
+  if (/different email address/i.test(msg)) return t('accept.error.wrong_account');
+  return t('accept.error.generic');
+}
+
+async function consumeAcceptInvite(inviteId) {
+  if (_acceptInFlight) return;
+  _acceptInFlight = true;
+  try {
+    const result = await api.acceptInvite(inviteId);
+
+    // Switch to the joined workspace. New JWT carries the workspace context;
+    // reload picks it up for sidebar /me + socket rooms + data fetches. If
+    // the switch fails, log and reload anyway - the membership was created
+    // so the user can switch manually via the dropdown.
+    try {
+      const sw = await api.switchWorkspace(result.workspace_id);
+      if (sw?.token) localStorage.setItem('token', sw.token);
+    } catch (e) {
+      console.warn('switchWorkspace after accept failed (non-fatal):', e.message);
+    }
+
+    // Stash the toast text in a scoped key (not a generic pending-toast
+    // channel) so app boot below fires it after reload.
+    const toastKey = result.already_member ? 'accept.already_member' : 'accept.success';
+    localStorage.setItem(PENDING_INVITE_TOAST_KEY, JSON.stringify({
+      message: t(toastKey, { name: result.workspace_name }),
+      kind: 'success',
+    }));
+
+    clearPendingInvite();
+    // history.replaceState mutates the hash WITHOUT firing hashchange.
+    // Important: a plain `location.hash = '#/'` would fire hashchange
+    // synchronously, causing route() to fire a second time before the
+    // reload runs - that second route() call would consume the toast key
+    // and attach the toast to a DOM that's about to be destroyed by the
+    // reload. Using replaceState bypasses that race so the post-reload
+    // route() is the only one that picks up the toast.
+    history.replaceState(null, '', window.location.pathname + '#/');
+    window.location.reload();
+  } catch (err) {
+    showToast(mapAcceptError(err), 'error');
+    clearPendingInvite();
+    _acceptInFlight = false;
+  }
+}
+
+// Fires once per page load (single-shot key in localStorage). If the
+// previous routeApp cycle stashed a toast across reload, show it now.
+function consumePendingInviteToast() {
+  const raw = localStorage.getItem(PENDING_INVITE_TOAST_KEY);
+  if (!raw) return;
+  localStorage.removeItem(PENDING_INVITE_TOAST_KEY);
+  try {
+    const { message, kind } = JSON.parse(raw);
+    if (message) showToast(message, kind || 'info');
+  } catch {}
+}
 
 // Map nav-link data-view to its translation key.
 const NAV_LABEL_KEYS = {
@@ -110,6 +235,22 @@ function route() {
 
   const hash = window.location.hash || '#/';
 
+  // Slice 2C - direct hits on #/accept-invite/{id}. Handle BEFORE the
+  // auth-redirect-to-login because an unauthed visit needs to stash the
+  // inviteId so it survives the redirect.
+  if (hash.startsWith('#/accept-invite/')) {
+    const inviteId = hash.split('#/accept-invite/')[1].split('/')[0];
+    if (inviteId) {
+      if (!isAuthenticated()) {
+        stashPendingInvite(inviteId);
+        window.location.hash = '#/login';
+        return;
+      }
+      consumeAcceptInvite(inviteId); // helper handles routing (reload to '#/')
+      return;
+    }
+  }
+
   // Auth check - redirect to login if not authenticated
   if (!isAuthenticated() && hash !== '#/login') {
     window.location.hash = '#/login';
@@ -120,6 +261,19 @@ function route() {
   if (isAuthenticated() && hash === '#/login') {
     window.location.hash = localStorage.getItem('rd_onboarded') ? '#/' : '#/onboarding';
     return;
+  }
+
+  // Slice 2C - past the auth gates. (a) Show any toast stashed across the
+  // accept-invite reload boundary. (b) If a stash exists (from an unauthed
+  // accept-invite visit + subsequent login/register), consume it now. The
+  // helper's in-flight guard prevents double-fire on subsequent hashchanges.
+  if (isAuthenticated()) {
+    consumePendingInviteToast();
+    const stashedInviteId = readPendingInvite();
+    if (stashedInviteId) {
+      consumeAcceptInvite(stashedInviteId);
+      return;
+    }
   }
 
   // Onboarding for new users

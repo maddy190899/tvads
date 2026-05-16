@@ -1142,4 +1142,13 @@ export default {
   'members.empty.invites': 'No pending invites.',
   'members.load_error': 'Failed to load members: {error}',
   'members.workspace_not_found': 'Workspace not found or no access.',
+
+  // Accept-invite flow (Slice 2C). Toasts that fire post-accept on the
+  // dashboard. Error variants share one helper in app.js's mapAcceptError().
+  'accept.success': "You've joined {name}",
+  'accept.already_member': "You're already a member of {name}",
+  'accept.error.not_found': 'Invite no longer valid',
+  'accept.error.expired': 'This invite has expired - ask the admin for a new one',
+  'accept.error.wrong_account': 'This invite is for a different email address. Sign out and sign in with the right account.',
+  'accept.error.generic': 'Failed to accept invite. Try again or contact your admin.',
 };
