@@ -23,7 +23,12 @@ const { sendEmail } = require('./email');
 const { getClientIp } = require('./activity');
 const config = require('../config');
 
-const ADMIN_NOTIFY_TO = 'support@screentinker.com';
+// Admin signup-notify recipient. Sourced from env (not hardcoded) so the
+// hosted .com address never ships in open-source code: a self-hoster who
+// configures Graph but forgets SELF_HOSTED=true would otherwise fire their
+// users' signup PII into our inbox. Unset -> admin notify is skipped entirely
+// (the user's welcome email is unaffected). Hosted prod sets this env var.
+const ADMIN_NOTIFY_TO = process.env.ADMIN_NOTIFY_EMAIL || null;
 
 const LINKS = {
   player:     'https://screentinker.com/player/',
@@ -155,13 +160,17 @@ function sendSignupEmails(user, req) {
       });
       console.log(`[SIGNUP-EMAIL] welcome -> ${email}: ${JSON.stringify(w)}`);
 
-      const a = await sendEmail({
-        to: ADMIN_NOTIFY_TO,
-        rawSubject: true,
-        subject: `New signup: ${email}`,
-        text: adminText({ name, email, orgName, signupUnix, ip, country, userAgent }),
-      });
-      console.log(`[SIGNUP-EMAIL] admin-notify (${email}) -> ${ADMIN_NOTIFY_TO}: ${JSON.stringify(a)}`);
+      if (ADMIN_NOTIFY_TO) {
+        const a = await sendEmail({
+          to: ADMIN_NOTIFY_TO,
+          rawSubject: true,
+          subject: `New signup: ${email}`,
+          text: adminText({ name, email, orgName, signupUnix, ip, country, userAgent }),
+        });
+        console.log(`[SIGNUP-EMAIL] admin-notify (${email}) -> ${ADMIN_NOTIFY_TO}: ${JSON.stringify(a)}`);
+      } else {
+        console.log('[SIGNUP-EMAIL] admin notify skipped (ADMIN_NOTIFY_EMAIL unset)');
+      }
 
       // Stamp after the send block regardless of per-email outcome (no retry):
       // marks this user handled so we never double-send.
