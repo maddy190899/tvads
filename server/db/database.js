@@ -173,6 +173,10 @@ const migrations = [
   // already in the current model ('user'/'platform_admin'/'platform_operator').
   "UPDATE users SET role = 'platform_admin' WHERE role = 'superadmin'",
   "UPDATE users SET role = 'user' WHERE role = 'admin'",
+  // Issue #10: admin-provisioned users. When an admin creates a user with a
+  // known password, must_change_password=1 forces a password change on first
+  // login. Default 0 so all existing users are unaffected.
+  "ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0",
 ];
 for (const sql of migrations) {
   try { db.exec(sql); } catch (e) { /* already exists */ }

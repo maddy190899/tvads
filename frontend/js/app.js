@@ -20,6 +20,7 @@ import * as adminPlayerDebug from './views/admin-player-debug.js';
 import * as designer from './views/designer.js';
 import * as playlists from './views/playlists.js';
 import * as workspaceMembers from './views/workspace-members.js';
+import * as forcePasswordChange from './views/force-password-change.js';
 import { applyBranding } from './branding.js';
 import { t } from './i18n.js';
 import { isPlatformAdmin } from './utils.js';
@@ -272,6 +273,33 @@ function route() {
     const stashedInviteId = readPendingInvite();
     if (stashedInviteId) {
       consumeAcceptInvite(stashedInviteId);
+      return;
+    }
+  }
+
+  // #10: forced first-login password change. An admin-provisioned user carries
+  // must_change_password until they set their own password. Block every other
+  // authenticated view and force them to the change-password screen; the server
+  // clears the flag on a successful PUT /api/auth/me. The screen itself is the
+  // one exception (so they can actually change it).
+  if (isAuthenticated()) {
+    const u = getCurrentUser();
+    if (u && u.must_change_password && hash !== '#/change-password') {
+      window.location.hash = '#/change-password';
+      return;
+    }
+    if (hash === '#/change-password') {
+      if (!u || !u.must_change_password) {
+        // Not (or no longer) required - don't strand the user on a dead screen.
+        window.location.hash = '#/';
+        return;
+      }
+      sidebar.style.display = 'none';
+      app.style.marginLeft = '0';
+      const mb = document.getElementById('mobileMenuBtn');
+      if (mb) mb.style.display = 'none';
+      currentView = forcePasswordChange;
+      forcePasswordChange.render(app);
       return;
     }
   }

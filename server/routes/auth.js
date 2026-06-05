@@ -429,10 +429,12 @@ router.put('/me', requireAuth, (req, res) => {
       }
     }
     const hash = bcrypt.hashSync(password, 10);
-    db.prepare('UPDATE users SET password_hash = ?, updated_at = strftime(\'%s\',\'now\') WHERE id = ?')
+    // #10: a successful password change clears must_change_password, releasing
+    // the first-login change-password gate.
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = strftime(\'%s\',\'now\') WHERE id = ?')
       .run(hash, req.user.id);
   }
-  const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, email_alerts FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, email_alerts, must_change_password FROM users WHERE id = ?').get(req.user.id);
   res.json(user);
 });
 

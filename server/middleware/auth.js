@@ -48,7 +48,7 @@ function requireAuth(req, res, next) {
       req.jwtWorkspaceId = null;
       return next();
     }
-    const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, email_alerts FROM users WHERE id = ?').get(decoded.id);
+    const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, email_alerts, must_change_password FROM users WHERE id = ?').get(decoded.id);
     if (!user) return res.status(401).json({ error: 'User not found' });
     req.user = user;
     // Tenancy middleware reads this on the resolver step.
