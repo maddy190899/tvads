@@ -86,12 +86,11 @@ function requireOrgOwner(req, res, next) {
   next();
 }
 
-function requirePlatformAdmin(req, res, next) {
-  if (!req.user || req.user.role !== 'platform_admin') {
-    return res.status(403).json({ error: 'Platform admin required' });
-  }
-  next();
-}
+// #14: the dead/stricter requirePlatformAdmin that used to live here (bare
+// `=== 'platform_admin'`, excluding legacy superadmin) was removed. The single
+// platform-admin guard is requirePlatformAdmin in server/middleware/auth.js,
+// which is the alias every route already imports and which accepts the full
+// PLATFORM_ROLES set via isPlatformRole().
 
 // Decoupled "can admin this workspace" predicate. Unlike canAdmin(req) above,
 // this takes an explicit (user, workspace) pair instead of reading from req,
@@ -134,5 +133,4 @@ module.exports = {
   requireWorkspaceAdmin,
   requireOrgAdmin,
   requireOrgOwner,
-  requirePlatformAdmin,
 };

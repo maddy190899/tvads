@@ -26,7 +26,7 @@ function recoveryUser(decoded) {
     id: decoded.id,
     email: decoded.email || 'admin@localhost',
     name: 'Recovery Admin',
-    role: decoded.role || 'admin',
+    role: decoded.role || 'platform_admin',
     auth_provider: 'recovery',
     avatar_url: null,
     plan_id: 'enterprise'
@@ -82,9 +82,24 @@ function optionalAuth(req, res, next) {
 // either spelling so existing callers keep working without per-route edits.
 // New code should prefer requirePlatformAdmin / requireOrgAdmin / workspace
 // role guards from server/lib/permissions.js.
+//
+// Issue #14 (role normalization): the data migration in db/database.js collapses
+// any legacy 'superadmin' -> 'platform_admin' and 'admin' -> 'user'. 'superadmin'
+// is kept in PLATFORM_ROLES purely as back-compat belt-and-suspenders (recovery
+// tokens, stray strings) - no row should carry it post-migration. Owner-level
+// power lives here in PLATFORM_ROLES; anything not in this set is denied.
 
 const PLATFORM_ROLES = ['superadmin', 'platform_admin'];
 const ELEVATED_ROLES = ['admin', 'superadmin', 'platform_admin'];
+
+// isPlatformRole: single predicate for "is this string a platform-owner role".
+// Use this instead of a bare `role === 'platform_admin'` so a stray 'superadmin'
+// is never silently treated as lower-privileged (the act-as bug fixed in #14).
+// NOTE: this is the OWNER tier only - it deliberately does NOT include
+// 'platform_operator' (issue #13), which is cross-org staff, not an owner.
+function isPlatformRole(role) {
+  return PLATFORM_ROLES.includes(role);
+}
 
 function requireAdmin(req, res, next) {
   if (!req.user || !ELEVATED_ROLES.includes(req.user.role)) {
@@ -103,4 +118,4 @@ function requireSuperAdmin(req, res, next) {
 // Preferred alias for new code.
 const requirePlatformAdmin = requireSuperAdmin;
 
-module.exports = { generateToken, verifyToken, requireAuth, optionalAuth, requireAdmin, requireSuperAdmin, requirePlatformAdmin, PLATFORM_ROLES, ELEVATED_ROLES };
+module.exports = { generateToken, verifyToken, requireAuth, optionalAuth, requireAdmin, requireSuperAdmin, requirePlatformAdmin, isPlatformRole, PLATFORM_ROLES, ELEVATED_ROLES };

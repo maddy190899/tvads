@@ -5,7 +5,7 @@ const https = require('https');
 const { v4: uuidv4 } = require('uuid');
 const { OAuth2Client } = require('google-auth-library');
 const { db } = require('../db/database');
-const { generateToken, requireAuth, requireAdmin, requireSuperAdmin, PLATFORM_ROLES } = require('../middleware/auth');
+const { generateToken, requireAuth, requireAdmin, requireSuperAdmin, isPlatformRole, PLATFORM_ROLES } = require('../middleware/auth');
 const { resolveTenancy } = require('../lib/tenancy');
 const { logActivity, getClientIp } = require('../services/activity');
 const { sendSignupEmails } = require('../services/signupEmails');
@@ -456,11 +456,18 @@ router.delete('/users/:id', requireAuth, requireSuperAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-// Update user role (superadmin only)
+// Update user platform role (platform admin only).
+// #14: this manages users.role (the PLATFORM-level role) only - workspace and
+// org roles are managed in the members views. Whitelist is the current model:
+// 'user' and 'platform_admin' (the legacy 'admin'/'superadmin' strings are gone
+// after normalization and are no longer accepted here).
+const ASSIGNABLE_PLATFORM_ROLES = ['user', 'platform_admin'];
 router.put('/users/:id/role', requireAuth, requireSuperAdmin, (req, res) => {
   const { role } = req.body;
-  if (!['user', 'admin', 'superadmin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
-  if (req.params.id === req.user.id && role !== 'superadmin') return res.status(400).json({ error: 'Cannot demote yourself' });
+  if (!ASSIGNABLE_PLATFORM_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role' });
+  // Self-demotion guard: a platform admin can't strip their own platform role
+  // (would lock themselves out of platform admin actions).
+  if (req.params.id === req.user.id && !isPlatformRole(role)) return res.status(400).json({ error: 'Cannot demote yourself' });
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, req.params.id);
   res.json({ success: true });
 });

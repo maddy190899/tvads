@@ -8,7 +8,8 @@
 //   req.organizationId   string | null   parent org of req.workspace
 //   req.workspaceRole    string | null   'workspace_admin' | 'workspace_editor' | 'workspace_viewer'
 //   req.orgRole          string | null   'org_owner' | 'org_admin'
-//   req.isPlatformAdmin  boolean         shortcut for req.user.role === 'platform_admin'
+//   req.isPlatformAdmin  boolean         true when req.user.role is a platform-owner role
+//                                        (isPlatformRole: platform_admin / legacy superadmin)
 //   req.actingAs         boolean         true when the user reached this workspace via
 //                                        org-level or platform-level access rather than
 //                                        a direct workspace_members row
@@ -26,6 +27,7 @@
 'use strict';
 
 const { db } = require('../db/database');
+const { isPlatformRole } = require('../middleware/auth');
 
 function membershipOf(userId, workspaceId) {
   return db.prepare(
@@ -58,7 +60,10 @@ function firstAccessibleWorkspace(userId) {
 // or platform admin). Returns the access context: { workspaceRole, actingAs }
 // or null if no access.
 function accessContext(userId, role, workspace) {
-  const isPlatformAdmin = role === 'platform_admin';
+  // #14: route through isPlatformRole so a legacy 'superadmin' is treated as a
+  // platform owner here too (previously this bare === check excluded it, so a
+  // superadmin couldn't act-as into orgs they didn't directly belong to).
+  const isPlatformAdmin = isPlatformRole(role);
   const wsMembership = membershipOf(userId, workspace.id);
   if (wsMembership) {
     return { workspaceRole: wsMembership.role, actingAs: false };
@@ -79,7 +84,7 @@ function resolveTenancy(req, res, next) {
     return next();
   }
 
-  const isPlatformAdmin = req.user.role === 'platform_admin';
+  const isPlatformAdmin = isPlatformRole(req.user.role);
   req.isPlatformAdmin = isPlatformAdmin;
 
   // Build the ordered candidate list of workspace_ids to try.

@@ -799,6 +799,9 @@ export default {
   'admin.col.monthly': 'Monthly',
   'admin.col.yearly': 'Yearly',
   'admin.role.user': 'User',
+  'admin.role.platform_admin': 'Platform admin',
+  // Legacy labels kept for back-compat with any not-yet-normalized data; the
+  // role dropdown no longer offers these (#14 normalization).
   'admin.role.admin': 'Admin',
   'admin.role.superadmin': 'Superadmin',
   'admin.remove': 'Remove',
