@@ -15,7 +15,11 @@ const config = require('../config');
 // workspace_id to embed in the JWT. Idempotent: if the user already has
 // memberships (e.g. migrated from Phase 1), returns the first one without
 // creating anything.
-function ensureDefaultOrgForUser(user) {
+// #12: allowCreate gates the MINT path only. An existing membership is always
+// returned (idempotent). When allowCreate is false and the user has no
+// membership, returns null - the caller is created org-less and an admin /
+// operator assigns them to a workspace afterward.
+function ensureDefaultOrgForUser(user, { allowCreate = true } = {}) {
   const existing = db.prepare(`
     SELECT w.id FROM workspaces w
     JOIN workspace_members wm ON wm.workspace_id = w.id
@@ -23,6 +27,7 @@ function ensureDefaultOrgForUser(user) {
     ORDER BY wm.joined_at ASC LIMIT 1
   `).get(user.id);
   if (existing) return existing.id;
+  if (!allowCreate) return null;
 
   // No memberships -> mint a fresh org and Default workspace owned by user.
   const orgId = uuidv4();
@@ -85,7 +90,7 @@ router.post('/register', (req, res) => {
   if (!canRegister()) {
     return res.status(403).json({ error: 'Public registration is disabled. Contact your administrator.' });
   }
-  const { email, password, name } = req.body;
+  const { email, password, name, createOrg } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
   if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
@@ -109,7 +114,14 @@ router.post('/register', (req, res) => {
   `).run(id, email.toLowerCase(), name || email.split('@')[0], passwordHash, role, plan, trialStarted, trialStarted ? 'pro' : null);
 
   const user = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_ends FROM users WHERE id = ?').get(id);
-  const workspaceId = ensureDefaultOrgForUser(user);
+  // #12: org-on-create. Per-request createOrg overrides the deployment default
+  // (config.autoCreateOrgOnSignup). The first user is always given an org so a
+  // fresh install is never left headless. When neither applies, the user is
+  // created org-less and lands on the "no workspaces yet" state until an admin
+  // assigns them.
+  const createOrgForUser = isFirstUser
+    || (createOrg !== undefined ? !!createOrg : config.autoCreateOrgOnSignup);
+  const workspaceId = ensureDefaultOrgForUser(user, { allowCreate: createOrgForUser });
   const token = generateToken(user, workspaceId);
 
   res.status(201).json({ token, user, current_workspace_id: workspaceId });
@@ -135,7 +147,7 @@ router.post('/login', (req, res) => {
   }
 
   logSuccessfulLogin(user.id, email, getClientIp(req));
-  const workspaceId = ensureDefaultOrgForUser(user);
+  const workspaceId = ensureDefaultOrgForUser(user, { allowCreate: config.autoCreateOrgOnSignup });
   const token = generateToken(user, workspaceId);
   const { password_hash, ...safeUser } = user;
   res.json({ token, user: safeUser, current_workspace_id: workspaceId });
@@ -187,7 +199,7 @@ router.post('/google', async (req, res) => {
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
     }
 
-    const workspaceId = ensureDefaultOrgForUser(user);
+    const workspaceId = ensureDefaultOrgForUser(user, { allowCreate: config.autoCreateOrgOnSignup });
     const token = generateToken(user, workspaceId);
     const { password_hash, ...safeUser } = user;
     res.json({ token, user: safeUser, current_workspace_id: workspaceId });
@@ -268,7 +280,7 @@ router.post('/microsoft', async (req, res) => {
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
     }
 
-    const workspaceId = ensureDefaultOrgForUser(user);
+    const workspaceId = ensureDefaultOrgForUser(user, { allowCreate: config.autoCreateOrgOnSignup });
     const token = generateToken(user, workspaceId);
     const { password_hash, ...safeUser } = user;
     res.json({ token, user: safeUser, current_workspace_id: workspaceId });

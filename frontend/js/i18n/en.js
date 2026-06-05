@@ -1217,6 +1217,11 @@ export default {
   'forcepw.error_mismatch': "Passwords don't match.",
   'forcepw.error_generic': 'Could not update password. Try again.',
 
+  // No-workspace empty state (#12): shown to an org-less signed-in user.
+  'noworkspace.title': 'No workspaces yet',
+  'noworkspace.body': "Your account isn't part of any workspace yet. Ask your administrator to add you to one, then sign in again.",
+  'noworkspace.sign_out': 'Sign out',
+
   // Accept-invite flow (Slice 2C). Toasts that fire post-accept on the
   // dashboard. Error variants share one helper in app.js's mapAcceptError().
   'accept.success': "You've joined {name}",
