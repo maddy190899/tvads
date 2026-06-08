@@ -453,7 +453,24 @@ router.put('/me', requireAuth, (req, res) => {
 // List users - platform admins see all, admins see team members only
 router.get('/users', requireAuth, requireAdmin, (req, res) => {
   if (PLATFORM_ROLES.includes(req.user.role)) {
-    const users = db.prepare('SELECT id, email, name, role, auth_provider, avatar_url, plan_id, created_at, last_login FROM users ORDER BY created_at ASC').all();
+    // One aggregate query (no N+1): each user carries workspace_count, and for
+    // an exactly-one membership the single workspace id/name + org name (used by
+    // the admin Users page Workspace column). MAX() over a single grouped row
+    // yields that row's values; the CASE blanks them when count != 1 so we never
+    // surface a single workspace name for a multi-membership user.
+    const users = db.prepare(`
+      SELECT u.id, u.email, u.name, u.role, u.auth_provider, u.avatar_url, u.plan_id, u.created_at, u.last_login,
+             COUNT(wm.workspace_id) AS workspace_count,
+             CASE WHEN COUNT(wm.workspace_id) = 1 THEN MAX(w.id)   END AS workspace_id,
+             CASE WHEN COUNT(wm.workspace_id) = 1 THEN MAX(w.name) END AS workspace_name,
+             CASE WHEN COUNT(wm.workspace_id) = 1 THEN MAX(o.name) END AS organization_name
+      FROM users u
+      LEFT JOIN workspace_members wm ON wm.user_id = u.id
+      LEFT JOIN workspaces w ON w.id = wm.workspace_id
+      LEFT JOIN organizations o ON o.id = w.organization_id
+      GROUP BY u.id
+      ORDER BY u.created_at ASC
+    `).all();
     res.json(users);
   } else {
     // Admin sees themselves + users in their teams

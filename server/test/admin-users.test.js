@@ -70,6 +70,9 @@ db.exec(`
     joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     UNIQUE(workspace_id, user_id)
   );
+  CREATE TABLE organizations (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL
+  );
   CREATE TABLE activity_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT,
@@ -99,6 +102,7 @@ const adminRouter = require('../routes/admin');
 const authRouter = require('../routes/auth');
 
 // --- seed orgs/workspaces/users ---
+db.prepare("INSERT INTO organizations (id, name) VALUES ('org-a','Org A'),('org-b','Org B')").run();
 db.prepare("INSERT INTO workspaces (id, organization_id, name) VALUES ('ws-a','org-a','Workspace A')").run();
 db.prepare("INSERT INTO workspaces (id, organization_id, name) VALUES ('ws-b','org-b','Workspace B')").run();
 
@@ -115,6 +119,14 @@ const regular = seedUser({ id: 'u-regular', email: 'regular@test.local', role: '
 // Dedicated target for the role-assignment regression test (kept separate so it
 // can't perturb the non-admin/operator tokens used by the deny tests above).
 seedUser({ id: 'u-role-target', email: 'role-target@test.local', role: 'user' });
+
+// Workspace move/assign targets (PUT /api/admin/users/:id/workspace).
+seedUser({ id: 'u-ws-single', email: 'ws-single@test.local', role: 'user' });
+db.prepare("INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ('ws-a','u-ws-single','workspace_editor')").run();
+seedUser({ id: 'u-ws-zero', email: 'ws-zero@test.local', role: 'user' });
+seedUser({ id: 'u-ws-multi', email: 'ws-multi@test.local', role: 'user' });
+db.prepare("INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ('ws-a','u-ws-multi','workspace_viewer')").run();
+db.prepare("INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ('ws-b','u-ws-multi','workspace_viewer')").run();
 
 const tokens = {
   admin: generateToken(adminUser, null),
@@ -237,4 +249,47 @@ test('platform_operator is assignable via PUT /users/:id/role (regression for #1
   assert.equal(res.status, 200);
   const dbRole = db.prepare('SELECT role FROM users WHERE id = ?').get('u-role-target').role;
   assert.equal(dbRole, 'platform_operator', 'role actually persisted as platform_operator');
+});
+
+// ---- PUT /api/admin/users/:id/workspace (move / assign single workspace) ----
+function setWorkspace(userId, workspaceId, token) {
+  return fetch(base + `/api/admin/users/${userId}/workspace`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ workspaceId }),
+  });
+}
+const wsRows = id => db.prepare('SELECT workspace_id, role FROM workspace_members WHERE user_id = ?').all(id);
+
+test('workspace move: single-membership user moved to another workspace (200, membership changed)', async () => {
+  const res = await setWorkspace('u-ws-single', 'ws-b', tokens.admin);
+  assert.equal(res.status, 200);
+  const rows = wsRows('u-ws-single');
+  assert.equal(rows.length, 1, 'still exactly one membership');
+  assert.equal(rows[0].workspace_id, 'ws-b', 'moved to ws-b');
+  assert.equal(rows[0].role, 'workspace_viewer', 'default role on move');
+});
+
+test('workspace assign: zero-membership user assigned a workspace (200)', async () => {
+  const res = await setWorkspace('u-ws-zero', 'ws-a', tokens.admin);
+  assert.equal(res.status, 200);
+  const rows = wsRows('u-ws-zero');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].workspace_id, 'ws-a');
+  assert.equal(rows[0].role, 'workspace_viewer');
+});
+
+test('workspace move REFUSED for a multi-membership user (400, untouched)', async () => {
+  const res = await setWorkspace('u-ws-multi', 'ws-a', tokens.admin);
+  assert.equal(res.status, 400);
+  assert.equal(wsRows('u-ws-multi').length, 2, 'both memberships preserved');
+});
+
+test('workspace move denied for a non-platform-admin (403)', async () => {
+  const reg = await setWorkspace('u-ws-zero', 'ws-b', tokens.regular);
+  assert.equal(reg.status, 403);
+  // platform_operator is also denied (platform user-mgmt is owner-only)
+  const op = await setWorkspace('u-ws-zero', 'ws-b', tokens.operator);
+  assert.equal(op.status, 403);
+  assert.equal(wsRows('u-ws-zero')[0].workspace_id, 'ws-a', 'unchanged by denied calls');
 });

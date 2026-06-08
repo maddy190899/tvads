@@ -17,6 +17,47 @@ const API = (url, opts = {}) => fetch('/api' + url, { headers: headers(), ...opt
 // were normalized away. #13 adds 'platform_operator' (cross-org staff).
 const PLATFORM_ROLE_OPTIONS = ['user', 'platform_operator', 'platform_admin'];
 
+// Platform staff have cross-org access (no single workspace), so the Workspace
+// column shows read-only "Platform (all)" for them. Note utils.isPlatformAdmin
+// only covers admin/superadmin; operators are staff here too.
+function isPlatformStaffRole(role) {
+  return role === 'platform_admin' || role === 'superadmin' || role === 'platform_operator';
+}
+
+// Build the org-grouped workspace <option> list ONCE (reused for every editable
+// row). Source is /me's accessible_workspaces (already ORDER BY org, name), same
+// as the Add User picker. Leading blank = "Unassigned"; selecting it is a no-op.
+function buildWorkspaceOptions(list) {
+  let html = `<option value="">${esc(t('admin.workspace.unassigned'))}</option>`;
+  let currentOrg = null;
+  for (const w of list) {
+    const org = w.organization_name || '—';
+    if (org !== currentOrg) {
+      if (currentOrg !== null) html += '</optgroup>';
+      html += `<optgroup label="${esc(org)}">`;
+      currentOrg = org;
+    }
+    html += `<option value="${esc(w.id)}">${esc(w.name)}</option>`;
+  }
+  if (currentOrg !== null) html += '</optgroup>';
+  return html;
+}
+
+// Workspace cell for one user row. Editable <select> only for a 'user' with 0 or
+// 1 membership; multi-membership users and platform staff render read-only.
+function workspaceCell(u, optionsHtml) {
+  if (isPlatformStaffRole(u.role)) {
+    return `<td style="padding:8px"><span style="color:var(--text-muted);font-size:12px">${t('admin.workspace.platform_all')}</span></td>`;
+  }
+  const count = u.workspace_count || 0;
+  if (count > 1) {
+    return `<td style="padding:8px"><span style="color:var(--text-muted);font-size:12px" title="${esc(t('admin.workspace.multi_hint'))}">${t('admin.workspace.multi', { n: count })}</span></td>`;
+  }
+  return `<td style="padding:8px">
+    <select class="input" style="max-width:180px;width:100%;background:var(--bg-input);font-size:12px;padding:4px" data-ws-user="${esc(u.id)}" data-current="${esc(u.workspace_id || '')}">${optionsHtml}</select>
+  </td>`;
+}
+
 export async function render(container) {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   if (!isPlatformAdmin(user)) {
@@ -69,8 +110,14 @@ export async function render(container) {
 async function loadUsers() {
   const el = document.getElementById('allUsersTable');
   try {
-    const [users, plans] = await Promise.all([API('/auth/users'), fetch('/api/subscription/plans').then(r => r.json())]);
+    const [users, plans, me] = await Promise.all([
+      API('/auth/users'),
+      fetch('/api/subscription/plans').then(r => r.json()),
+      api.getMe().catch(() => ({})), // workspace-picker source (same as Add User modal)
+    ]);
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    // Build the org-grouped <optgroup> workspace options ONCE, reuse per row.
+    const wsOptionsHtml = buildWorkspaceOptions(Array.isArray(me?.accessible_workspaces) ? me.accessible_workspaces : []);
 
     el.innerHTML = `
       <div class="table-wrap">
@@ -81,6 +128,7 @@ async function loadUsers() {
           <th style="padding:8px;text-align:left;color:var(--text-muted)">${t('admin.col.last_login')}</th>
           <th style="padding:8px;text-align:left;color:var(--text-muted)">${t('admin.col.role')}</th>
           <th style="padding:8px;text-align:left;color:var(--text-muted)">${t('admin.col.plan')}</th>
+          <th style="padding:8px;text-align:left;color:var(--text-muted)">${t('admin.col.workspace')}</th>
           <th style="padding:8px;text-align:left;color:var(--text-muted)">${t('admin.col.actions')}</th>
         </tr></thead>
         <tbody>
@@ -99,6 +147,7 @@ async function loadUsers() {
                   ${plans.map(p => `<option value="${p.id}" ${u.plan_id === p.id ? 'selected' : ''}>${p.display_name}</option>`).join('')}
                 </select>
               </td>
+              ${workspaceCell(u, wsOptionsHtml)}
               <td style="padding:8px;white-space:nowrap">
                 ${u.auth_provider === 'local' && u.id !== currentUser.id ? `<button class="btn btn-secondary btn-sm" data-reset-pw-user="${u.id}" data-user-email="${u.email}" style="margin-right:4px">${t('admin.reset_password')}</button>` : ''}
                 ${!isPlatformAdmin(u) ? `<button class="btn btn-danger btn-sm" data-delete-user="${u.id}">${t('admin.remove')}</button>` : `<span style="color:var(--text-muted);font-size:11px">${t('admin.owner')}</span>`}
@@ -125,6 +174,25 @@ async function loadUsers() {
         try {
           await API('/subscription/assign', { method: 'POST', body: JSON.stringify({ user_id: select.dataset.planUser, plan_id: select.value }) });
           showToast(t('admin.toast.plan_updated'), 'success');
+        } catch (err) { showToast(err.message, 'error'); loadUsers(); }
+      };
+    });
+
+    // Workspace move/assign (editable rows only: a 'user' with 0 or 1 membership).
+    // Set the current selection per row (the shared options string carries no
+    // per-row `selected`), then move/assign on change. Picking "Unassigned" or
+    // the same workspace is a no-op so a stray pick can't strip a membership.
+    el.querySelectorAll('[data-ws-user]').forEach(select => {
+      select.value = select.dataset.current || '';
+      select.onchange = async () => {
+        const wsId = select.value;
+        const current = select.dataset.current || '';
+        if (!wsId || wsId === current) { select.value = current; return; }
+        try {
+          const r = await API(`/admin/users/${select.dataset.wsUser}/workspace`, { method: 'PUT', body: JSON.stringify({ workspaceId: wsId }) });
+          if (r && r.error) { showToast(r.error, 'error'); loadUsers(); return; }
+          showToast(t('admin.toast.workspace_updated'), 'success');
+          loadUsers();
         } catch (err) { showToast(err.message, 'error'); loadUsers(); }
       };
     });

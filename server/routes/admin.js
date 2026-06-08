@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/database');
 const { canAdminWorkspace } = require('../lib/permissions');
+const { requirePlatformAdmin } = require('../middleware/auth');
 const { logActivity, getClientIp } = require('../services/activity');
 
 // Admin-provisioned user creation (#10). Operates on a target workspace
@@ -97,6 +98,53 @@ router.post('/users', (req, res) => {
     'SELECT id, email, name, role, auth_provider, plan_id, must_change_password, created_at FROM users WHERE id = ?'
   ).get(id);
   res.status(201).json({ ...created, workspace_id: ws.id, workspace_role: role });
+});
+
+// PUT /api/admin/users/:id/workspace - move/assign a SINGLE-workspace user to a
+// different workspace (platform Users admin page). Platform-admin only: this is
+// a cross-org, platform-level action (requirePlatformAdmin excludes
+// platform_operator, mirroring the page gating).
+//
+// Single-workspace model: refuses (400) a user who belongs to >1 workspace -
+// a single pick must never silently clobber multiple memberships; those are
+// managed in the workspace members view. Mirrors the frontend guard.
+router.put('/users/:id/workspace', requirePlatformAdmin, (req, res) => {
+  const workspaceId = String(req.body?.workspaceId || '').trim();
+  if (!workspaceId) return res.status(400).json({ error: 'workspaceId required' });
+
+  const target = db.prepare('SELECT id, email FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+
+  const memberships = db.prepare('SELECT workspace_id FROM workspace_members WHERE user_id = ?').all(target.id);
+  if (memberships.length > 1) {
+    return res.status(400).json({ error: 'User belongs to multiple workspaces - manage in the workspace members view' });
+  }
+
+  const ws = db.prepare('SELECT id, name, organization_id FROM workspaces WHERE id = ?').get(workspaceId);
+  if (!ws) return res.status(404).json({ error: 'Workspace not found' });
+
+  const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(ws.organization_id);
+
+  // No-op if the chosen workspace is already their sole membership (preserve role).
+  if (memberships.length === 1 && memberships[0].workspace_id === ws.id) {
+    const cur = db.prepare('SELECT role FROM workspace_members WHERE user_id = ? AND workspace_id = ?').get(target.id, ws.id);
+    return res.json({ user_id: target.id, workspace_id: ws.id, workspace_name: ws.name, organization_name: org?.name || null, role: cur ? cur.role : 'workspace_viewer', unchanged: true });
+  }
+
+  req.workspaceId = ws.id; // audit attribution
+  // Move (drop the existing single membership) or assign (none to drop), then
+  // add the chosen one at the default role. Guarded above to <=1 membership, so
+  // the DELETE removes at most one row.
+  const txn = db.transaction(() => {
+    db.prepare('DELETE FROM workspace_members WHERE user_id = ?').run(target.id);
+    db.prepare('INSERT INTO workspace_members (workspace_id, user_id, role, invited_by) VALUES (?, ?, ?, ?)')
+      .run(ws.id, target.id, 'workspace_viewer', req.user.id);
+  });
+  txn();
+
+  logActivity(req.user.id, 'admin_set_user_workspace', `target: ${target.email}, workspace: ${ws.id}`, null, getClientIp(req), ws.id);
+
+  res.json({ user_id: target.id, workspace_id: ws.id, workspace_name: ws.name, organization_name: org?.name || null, role: 'workspace_viewer' });
 });
 
 module.exports = router;
