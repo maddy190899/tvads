@@ -628,6 +628,44 @@ function backfillPlaylistItemsZoneId() {
 
 backfillPlaylistItemsZoneId();
 
+// Tenant delete-cascade (issue #18 follow-up). Core logic + table list live in
+// lib/tenant-cascade-migration.js (so they're unit-testable against an in-memory
+// DB). Here we own the boot concerns: a pre-migration snapshot for rollback and
+// process.exit on failure, matching the other heavy migrations above.
+const { applyTenantDeleteCascade } = require('../lib/tenant-cascade-migration');
+(function migrateTenantDeleteCascadeAtBoot() {
+  // Cheap guard so we don't snapshot on every boot once applied.
+  try {
+    if (db.prepare("SELECT 1 FROM schema_migrations WHERE id = 'phase2_3_tenant_delete_cascade'").get()) return;
+  } catch { /* schema_migrations may not exist yet */ }
+
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const snapshotPath = path.join(dbDir, `remote_display.pre-tenant-cascade-${ts}.db`);
+  let snapped = false;
+  try {
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    fs.copyFileSync(config.dbPath, snapshotPath);
+    snapped = true;
+  } catch (e) {
+    console.error(`[tenant-cascade] Snapshot failed: ${e.message}`);
+    process.exit(1);
+  }
+
+  try {
+    const result = applyTenantDeleteCascade(db);
+    if (result.status === 'applied') {
+      console.warn(`[tenant-cascade] workspace/org deletion now cascades (${result.tables.length} tables rebuilt). Snapshot: ${snapshotPath}`);
+    } else if (snapped) {
+      // Nothing to do (already applied / no tenancy tables) - drop the snapshot.
+      try { fs.unlinkSync(snapshotPath); } catch { /* ignore */ }
+    }
+  } catch (e) {
+    console.error(`[tenant-cascade] Migration FAILED: ${e.message}`);
+    console.error(`[tenant-cascade] Restore with: cp ${snapshotPath} ${config.dbPath}`);
+    process.exit(1);
+  }
+})();
+
 // Prune old telemetry (keep last 24h worth at 15s intervals = ~5760, cap at 6000)
 function pruneTelemetry(deviceId) {
   db.prepare(`
