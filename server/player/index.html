@@ -1506,7 +1506,11 @@
       const src = a.remote_url || `${config.serverUrl}/uploads/content/${a.filepath}`;
       const dur = (a.duration_sec || 10) * 1000;
 
-      if (zone.zone_type === 'widget' && a.widget_id) {
+      // Render based on what the ASSIGNMENT is (widget_id), not the zone's type:
+      // a widget can be placed in a 'content' zone, and gating on zone_type==='widget'
+      // left those zones blank (mime_type is null -> no video/image match). Matches the
+      // Android player, which keys off the assignment's widget_type.
+      if (a.widget_id) {
         const iframe = document.createElement('iframe');
         iframe.src = `${config.serverUrl}/api/widgets/${a.widget_id}/render`;
         // Sandbox into a unique origin so widget scripts can't read window.parent
