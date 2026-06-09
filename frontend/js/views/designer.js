@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { showToast } from '../components/toast.js';
+import { esc } from '../utils.js';
 import { t } from '../i18n.js';
 
 // Background swatches: ids resolve to translated names; values are the actual
@@ -50,6 +51,19 @@ export function render(container) {
       </div>
       <!-- Sidebar -->
       <div style="width:300px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 120px);overflow-y:auto">
+        <!-- AI Generate (#41) -->
+        <div style="background:var(--bg-card);border:1px solid var(--accent);border-radius:var(--radius);padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h4 style="font-size:13px">${t('designer.ai.title')}</h4>
+            <button class="btn-icon" id="aiSettingsBtn" title="${t('designer.ai.settings')}" style="padding:2px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+          </div>
+          <textarea id="aiPrompt" rows="2" class="input" placeholder="${t('designer.ai.placeholder')}" style="width:100%;resize:vertical;font-size:12px"></textarea>
+          <button class="btn btn-primary btn-sm" id="aiGenerateBtn" style="width:100%;justify-content:center;margin-top:6px">${t('designer.ai.generate')}</button>
+          <div id="aiStatus" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div>
+        </div>
+
         <!-- Add Elements -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
           <h4 style="font-size:13px;margin-bottom:10px">${t('designer.add_element')}</h4>
@@ -108,6 +122,32 @@ export function render(container) {
     const reader = new FileReader();
     reader.onload = (ev) => { bgImageDataUrl = ev.target.result; redraw(); };
     reader.readAsDataURL(file);
+  };
+
+  // AI generate (#41): prompt -> validated design spec -> load onto the canvas.
+  document.getElementById('aiSettingsBtn').onclick = openAiSettings;
+  const aiGenBtn = document.getElementById('aiGenerateBtn');
+  aiGenBtn.onclick = async () => {
+    const prompt = document.getElementById('aiPrompt').value.trim();
+    const status = document.getElementById('aiStatus');
+    if (!prompt) { status.textContent = t('designer.ai.need_prompt'); return; }
+    aiGenBtn.disabled = true; aiGenBtn.textContent = t('designer.ai.generating');
+    status.textContent = t('designer.ai.contacting');
+    try {
+      const design = await api.aiGenerateDesign(prompt);
+      elements = []; selectedIdx = -1;
+      if (design.background) {
+        bgValue = design.background; bgImageDataUrl = null;
+        const bc = document.getElementById('bgColor'); if (bc) bc.value = design.background;
+      }
+      (design.elements || []).forEach(el => elements.push(el));
+      redraw();
+      status.textContent = t('designer.ai.done', { n: (design.elements || []).length });
+    } catch (err) {
+      status.textContent = (err && err.message) || t('designer.ai.failed');
+    } finally {
+      aiGenBtn.disabled = false; aiGenBtn.textContent = t('designer.ai.generate');
+    }
   };
 
   // Add element handlers
@@ -271,6 +311,59 @@ function addElement(el) {
   elements.push(el);
   selectedIdx = elements.length - 1;
   redraw();
+}
+
+// #41: per-workspace AI endpoint config (BYO OpenAI-compatible endpoint + key).
+async function openAiSettings() {
+  let cur = {};
+  try { cur = await api.aiGetSettings(); } catch { /* show empty form */ }
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:520px;width:95vw">
+      <div class="modal-header">
+        <h3>${t('designer.ai.settings_title')}</h3>
+        <button class="btn-icon" data-ai-close aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${t('designer.ai.settings_desc')}</p>
+        <div class="form-group"><label>${t('designer.ai.base_url')}</label>
+          <input id="aiBaseUrl" class="input" value="${esc(cur.base_url || '')}" placeholder="https://api.openai.com/v1  ·  http://localhost:11434/v1" style="width:100%"></div>
+        <div class="form-group"><label>${t('designer.ai.model')}</label>
+          <input id="aiModel" class="input" value="${esc(cur.model || '')}" placeholder="gpt-4o-mini  ·  llama3.1:8b" style="width:100%"></div>
+        <div class="form-group"><label>${t('designer.ai.api_key')}</label>
+          <input id="aiKey" class="input" type="password" autocomplete="off" placeholder="${cur.has_key ? t('designer.ai.key_set') : t('designer.ai.key_placeholder')}" style="width:100%">
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${t('designer.ai.key_hint')}</div></div>
+        <div id="aiSettingsErr" style="display:none;color:var(--danger);font-size:13px;margin-top:8px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-ai-close>${t('common.cancel')}</button>
+        <button class="btn btn-primary" id="aiSaveSettings">${t('common.save')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelectorAll('[data-ai-close]').forEach(b => b.onclick = close);
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  overlay.querySelector('#aiSaveSettings').onclick = async () => {
+    const errEl = overlay.querySelector('#aiSettingsErr');
+    errEl.style.display = 'none';
+    const data = {
+      base_url: overlay.querySelector('#aiBaseUrl').value.trim(),
+      model: overlay.querySelector('#aiModel').value.trim(),
+    };
+    const key = overlay.querySelector('#aiKey').value;
+    if (key) data.api_key = key;
+    try {
+      await api.aiSaveSettings(data);
+      showToast(t('designer.ai.saved'), 'success');
+      close();
+    } catch (e2) {
+      errEl.textContent = (e2 && e2.message) || t('designer.ai.save_failed');
+      errEl.style.display = 'block';
+    }
+  };
 }
 
 function getBounds(el) {
