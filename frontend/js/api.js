@@ -181,6 +181,9 @@ export const api = {
   adminListOrgs: () => request('/admin/orgs'),
   adminDeleteOrg: (id) => request(`/admin/orgs/${id}`, { method: 'DELETE' }),
   adminDeleteWorkspace: (id) => request(`/admin/workspaces/${id}`, { method: 'DELETE' }),
+  aiGetSettings: () => request('/ai/settings'),
+  aiSaveSettings: (data) => request('/ai/settings', { method: 'PUT', body: JSON.stringify(data) }),
+  aiGenerateDesign: (prompt) => request('/ai/generate-design', { method: 'POST', body: JSON.stringify({ prompt }) }),
 
   // Instance-level default branding (#15, platform admin).
   adminGetBranding: () => request('/admin/branding'),

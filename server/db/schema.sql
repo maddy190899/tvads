@@ -389,6 +389,21 @@ CREATE TABLE IF NOT EXISTS white_labels (
     updated_at      INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
 
+-- ===================== AI (BYOK) SETTINGS =====================
+-- #41: per-workspace AI design generation. Bring-your-own OpenAI-COMPATIBLE
+-- endpoint (OpenAI cloud, or self-hosted: Ollama / LM Studio / llama.cpp, and
+-- AUTOMATIC1111 etc. for images), so the operator bears no AI cost. api_key_enc
+-- is AES-256-GCM encrypted (lib/secretbox.js); it is never returned to clients.
+CREATE TABLE IF NOT EXISTS ai_settings (
+    workspace_id    TEXT PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
+    base_url        TEXT,
+    api_key_enc     TEXT,
+    model           TEXT,
+    image_base_url  TEXT,
+    image_model     TEXT,
+    updated_at      INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+
 -- ===================== KIOSK PAGES =====================
 
 CREATE TABLE IF NOT EXISTS kiosk_pages (

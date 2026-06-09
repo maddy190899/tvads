@@ -413,6 +413,7 @@ app.use('/api/admin', requireAuth, require('./routes/admin'));
 
 app.use('/api/devices', requireAuth, resolveTenancy, require('./routes/devices'));
 app.use('/api/content', requireAuth, resolveTenancy, require('./routes/content'));
+app.use('/api/ai', requireAuth, resolveTenancy, require('./routes/ai')); // #41 AI design (BYOK)
 app.use('/api/folders', requireAuth, resolveTenancy, require('./routes/folders'));
 app.use('/api/assignments', requireAuth, resolveTenancy, require('./routes/assignments'));
 app.use('/api/provision', requireAuth, resolveTenancy, require('./routes/provisioning'));
