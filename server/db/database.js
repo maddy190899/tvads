@@ -178,9 +178,23 @@ const migrations = [
   // login. Default 0 so all existing users are unaffected.
   "ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0",
 ];
+// Apply each ALTER idempotently. A "duplicate column name" / "already exists"
+// error means the column is already present (expected on a migrated DB) - benign.
+// ANY OTHER error is a real, partial-migration failure: log it loudly so it's
+// visible at boot rather than as a silent runtime failure later (issue #37, where
+// a swallowed failure left users.must_change_password absent -> total auth lockout).
+let _migApplied = 0;
 for (const sql of migrations) {
-  try { db.exec(sql); } catch (e) { /* already exists */ }
+  try {
+    db.exec(sql);
+    _migApplied++;
+  } catch (e) {
+    if (!/duplicate column name|already exists/i.test(e.message)) {
+      console.error(`[migrate] FAILED: ${sql}\n          -> ${e.message}`);
+    }
+  }
 }
+if (_migApplied > 0) console.log(`[migrate] applied ${_migApplied} new column migration(s)`);
 
 // Fix assignments table: make content_id nullable (SQLite requires table rebuild)
 try {
@@ -699,5 +713,9 @@ function pruneScreenshots(deviceId) {
     )
   `).run(deviceId, deviceId);
 }
+
+// #37: fail fast (loud) if migrations left the DB missing schema the code needs.
+const { verifyAndRepairSchema } = require('../lib/schema-check');
+verifyAndRepairSchema(db);
 
 module.exports = { db, pruneTelemetry, pruneScreenshots };
