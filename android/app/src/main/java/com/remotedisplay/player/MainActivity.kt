@@ -260,7 +260,12 @@ class MainActivity : AppCompatActivity() {
             thread {
                 for (i in 0 until assignments.length()) {
                     val item = assignments.getJSONObject(i)
-                    val contentId = item.getString("content_id")
+                    // Widget assignments have no downloadable content file - skip
+                    // (also avoids getString throwing on a null content_id).
+                    val widgetId = if (item.isNull("widget_id")) "" else item.optString("widget_id", "")
+                    if (widgetId.isNotEmpty()) continue
+                    val contentId = if (item.isNull("content_id")) "" else item.optString("content_id", "")
+                    if (contentId.isEmpty()) continue
                     val filename = item.optString("filename", "content")
                     val remoteUrl = item.optString("remote_url", null)
 
@@ -415,6 +420,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun playItem(item: PlaylistItem) {
         hideStatus()
+
+        // Widget content - render fullscreen in a WebView (single-zone / fullscreen
+        // layouts; multi-zone widgets go through ZoneManager). Previously unhandled,
+        // so widgets were blank/broken in default-fullscreen and the fullscreen template.
+        if (item.isWidget) {
+            val url = "${config.serverUrl}/api/widgets/${item.widgetId}/render"
+            Log.i("MainActivity", "Playing widget fullscreen: $url")
+            mediaPlayer.showWidget(url)
+            wsService?.sendPlaybackState(item.contentId.ifEmpty { item.widgetId ?: "" }, 0f)
+            return
+        }
 
         // YouTube content - play in WebView
         if (item.mimeType == "video/youtube" && !item.remoteUrl.isNullOrEmpty()) {
