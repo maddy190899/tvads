@@ -12,9 +12,11 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
+        android:gravity="center_horizontal|top"
         android:orientation="vertical"
-        android:padding="32dp"
+        android:paddingHorizontal="32dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp"
         android:keepScreenOn="true">
 
         <TextView
@@ -22,17 +24,17 @@
             android:layout_height="wrap_content"
             android:text="RemoteDisplay"
             android:textColor="#3B82F6"
-            android:textSize="36sp"
+            android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="4dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Digital Signage Player"
             android:textColor="#94A3B8"
-            android:textSize="16sp"
-            android:layout_marginBottom="32dp" />
+            android:textSize="14sp"
+            android:layout_marginBottom="20dp" />
 
         <!-- Server URL Section (hidden once paired so the code has room) -->
         <LinearLayout
@@ -100,8 +102,9 @@
                 android:textSize="16sp"
                 android:layout_marginBottom="12dp" />
 
-            <!-- Auto-sizes between 24sp and 96sp to fill the available width on a
-                 single line, so it's readable and never clipped on any screen. -->
+            <!-- Auto-sizes between 24sp and 56sp to fit the width on a single line.
+                 Capped at 56sp (not 96sp) + vertical padding so tall digits are
+                 never clipped, and the whole block stays on screen on short phones. -->
             <TextView
                 android:id="@+id/pairingCodeText"
                 android:layout_width="match_parent"
@@ -113,9 +116,12 @@
                 android:letterSpacing="0.3"
                 android:maxLines="1"
                 android:gravity="center"
+                android:paddingTop="4dp"
+                android:paddingBottom="8dp"
+                android:includeFontPadding="true"
                 app:autoSizeTextType="uniform"
                 app:autoSizeMinTextSize="24sp"
-                app:autoSizeMaxTextSize="96sp"
+                app:autoSizeMaxTextSize="56sp"
                 app:autoSizeStepGranularity="2sp" />
 
             <TextView
