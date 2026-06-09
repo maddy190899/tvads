@@ -140,6 +140,11 @@ class ZoneManager(
         val isMuted = a.optInt("muted", 0) == 1
         val durationMs = a.optInt("duration_sec", 10).coerceAtLeast(3) * 1000L
 
+        // Per-zone content switch log (fires on initial render AND each rotation), so
+        // the live debug panel shows each zone advancing on its own interval.
+        val label = a.optString("filename", "").ifEmpty { widgetType?.let { "widget:$it" } ?: mimeType.ifEmpty { "item" } }
+        com.remotedisplay.player.util.DebugLog.i("Zone", "'${zone.name}' [${(index % assignments.size) + 1}/${assignments.size}] -> $label (${durationMs / 1000}s)")
+
         when {
             // Widget - render in WebView
             widgetType != null -> {
