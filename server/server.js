@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const config = require('./config');
+const VERSION = require('./version');
 
 // Ensure upload directories exist
 [config.contentDir, config.screenshotsDir].forEach(dir => {
@@ -469,9 +470,7 @@ updateFrontendHash();
 // Recheck every 30 seconds
 setInterval(updateFrontendHash, 30000);
 app.get('/api/version', (req, res) => {
-  let version = '1.2.0';
-  try { version = fs.readFileSync(path.join(__dirname, '..', 'VERSION'), 'utf8').trim(); } catch {}
-  res.json({ hash: frontendHash, version });
+  res.json({ hash: frontendHash, version: VERSION });
 });
 
 // Public status page
@@ -488,13 +487,7 @@ app.get('/api/update/check', (req, res) => {
   const apkSize = apkExists ? fs.statSync(apkPath).size : 0;
   const apkModified = apkExists ? fs.statSync(apkPath).mtimeMs : 0;
 
-  // Read version from a version file, or use the APK modification time as a version indicator
-  const versionFile = path.join(__dirname, '..', 'VERSION');
-  let latestVersion = '1.0.0';
-  try {
-    if (fs.existsSync(versionFile)) latestVersion = fs.readFileSync(versionFile, 'utf8').trim();
-  } catch {}
-
+  const latestVersion = VERSION;
   const updateAvailable = currentVersion && currentVersion !== latestVersion;
 
   res.json({
