@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Per-item scheduling (#74 dayparting + #75 auto-expire)
+## 1.9.0 — 2026-06-11
 
 ### Added
 - **Per-playlist-item schedules.** Each playlist item can carry one or more schedule
