@@ -135,3 +135,27 @@ test('#73 auto-publish: the TOKEN flag decides draft vs live; the body can never
   assert.equal(pub.status, 200, 'manual publish works post-extraction');
   assert.equal((await jfetch(`/api/playlists/${plD.id}`, jwtAuth(jwt))).body.status, 'published', 'manual publish sets status=published');
 });
+
+test('#73 edit-designations: PUT /:id/targets re-designates (add + remove); confinement follows', async () => {
+  const auth = (tok) => ({ headers: { Authorization: 'Bearer ' + tok } });
+  const email = 're' + crypto.randomBytes(4).toString('hex') + '@x.local';
+  const jwt = (await jfetch('/api/auth/register', reg({ email, password: 'Passw0rd123' }))).body.token;
+  const plA = (await jfetch('/api/playlists', jpost(jwt, { name: 'A' }))).body;
+  const plB = (await jfetch('/api/playlists', jpost(jwt, { name: 'B' }))).body;
+  const plC = (await jfetch('/api/playlists', jpost(jwt, { name: 'C' }))).body;
+
+  const tokRes = await jfetch('/api/tokens', jpost(jwt, { name: 'EditMe', scope: 'agency', target_playlist_ids: [plA.id, plB.id] }));
+  const atok = tokRes.body.token, tokId = tokRes.body.id;
+  // initially A+B designated (200 = router.param lets it through), C not (403)
+  assert.equal((await jfetch(`/api/agency/playlists/${plA.id}/layout`, auth(atok))).status, 200, 'A reachable');
+  assert.equal((await jfetch(`/api/agency/playlists/${plC.id}/layout`, auth(atok))).status, 403, 'C not yet designated');
+
+  // re-designate: drop A, keep B, add C
+  const put = await jfetch(`/api/tokens/${tokId}/targets`, { method: 'PUT', headers: { Authorization: 'Bearer ' + jwt, 'Content-Type': 'application/json' }, body: JSON.stringify({ target_playlist_ids: [plB.id, plC.id] }) });
+  assert.equal(put.status, 200, 're-designate ok');
+
+  // confinement follows the NEW set: removed A -> 403, kept B -> 200, added C -> 200
+  assert.equal((await jfetch(`/api/agency/playlists/${plA.id}/layout`, auth(atok))).status, 403, 'removed A -> 403');
+  assert.equal((await jfetch(`/api/agency/playlists/${plB.id}/layout`, auth(atok))).status, 200, 'kept B -> 200');
+  assert.equal((await jfetch(`/api/agency/playlists/${plC.id}/layout`, auth(atok))).status, 200, 'added C -> 200');
+});

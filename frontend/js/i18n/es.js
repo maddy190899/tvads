@@ -362,6 +362,8 @@ export default {
   'apitoken.agency_needs_playlists': 'Selecciona al menos una lista para un token de agencia.',
   'apitoken.agency_no_playlists': 'Crea una lista primero: un token de agencia debe apuntar a una.',
   'apitoken.targets_label': 'Designadas:',
+  'apitoken.edit_targets': 'Editar listas',
+  'apitoken.targets_updated': 'Designaciones actualizadas',
   'apitoken.auto_publish_label': 'Publicación automática (omitir mi aprobación)',
   'apitoken.auto_publish_hint': 'Desactivado (predeterminado): las adiciones esperan como borradores para que las publiques. Activado: se publican de inmediato, solo para agencias de plena confianza.',
   'apitoken.auto_publish_on': 'publicación automática activada',

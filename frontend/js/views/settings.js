@@ -90,6 +90,7 @@ export async function render(container) {
       </div>
       <div id="tokenSecretBox" style="display:none"></div>
       <div id="tokenList"><p style="color:var(--text-muted);font-size:13px">${t('settings.loading_users')}</p></div>
+      <div id="tokenEditPanel" style="display:none"></div>
     </div>
 
     ${isAdmin ? `
@@ -377,7 +378,7 @@ export async function render(container) {
               <td style="padding:10px 12px;white-space:nowrap;text-align:right">
                 ${tok.revoked_at
                   ? `<span style="color:var(--text-muted);font-size:12px">${t('apitoken.revoked')}</span>`
-                  : `<button class="btn btn-secondary btn-sm revoke-token-btn" data-id="${esc(String(tok.id))}">${t('apitoken.revoke')}</button>`}
+                  : `${tok.scope === 'agency' ? `<button class="btn btn-secondary btn-sm edit-targets-btn" data-id="${esc(String(tok.id))}" data-targets="${esc((tok.targets || []).map(p => p.id).join(','))}">${t('apitoken.edit_targets')}</button> ` : ''}<button class="btn btn-secondary btn-sm revoke-token-btn" data-id="${esc(String(tok.id))}">${t('apitoken.revoke')}</button>`}
               </td>
             </tr>
           `).join('')}
@@ -398,6 +399,37 @@ export async function render(container) {
         }
       });
     });
+
+    // #73: edit an agency token's playlist designations -> PUT /:id/targets (atomic re-designate).
+    el.querySelectorAll('.edit-targets-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const current = new Set((btn.dataset.targets || '').split(',').filter(Boolean));
+      const panel = document.getElementById('tokenEditPanel');
+      const pls = await api.getPlaylists().catch(() => []);
+      panel.style.display = 'block';
+      panel.innerHTML = `
+        <div style="border:1px solid var(--accent);border-radius:var(--radius);padding:16px;margin-top:12px">
+          <h4 style="font-size:14px;margin-bottom:8px">${t('apitoken.edit_targets')}</h4>
+          <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow:auto;margin-bottom:12px">
+            ${pls.length
+              ? pls.map(p => `<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" class="edit-pl" value="${esc(String(p.id))}"${current.has(String(p.id)) ? ' checked' : ''}> ${esc(p.name)}</label>`).join('')
+              : `<p style="color:var(--text-muted);font-size:12px">${t('apitoken.agency_no_playlists')}</p>`}
+          </div>
+          <button class="btn btn-primary btn-sm" id="saveTargetsBtn">${t('common.save')}</button>
+          <button class="btn btn-secondary btn-sm" id="cancelTargetsBtn">${t('common.cancel')}</button>
+        </div>`;
+      document.getElementById('saveTargetsBtn').onclick = async () => {
+        const ids = [...panel.querySelectorAll('.edit-pl:checked')].map(c => c.value);
+        if (!ids.length) return showToast(t('apitoken.agency_needs_playlists'), 'error');
+        try {
+          await api.setTokenTargets(id, ids);
+          showToast(t('apitoken.targets_updated'), 'success');
+          panel.style.display = 'none';
+          loadTokens();
+        } catch (err) { showToast(err.message, 'error'); }
+      };
+      document.getElementById('cancelTargetsBtn').onclick = () => { panel.style.display = 'none'; };
+    }));
   }
 
   loadTokens();

@@ -399,6 +399,8 @@ export default {
   'apitoken.agency_needs_playlists': 'Select at least one playlist for an agency token.',
   'apitoken.agency_no_playlists': 'Create a playlist first — an agency token must target one.',
   'apitoken.targets_label': 'Designated:',
+  'apitoken.edit_targets': 'Edit playlists',
+  'apitoken.targets_updated': 'Designations updated',
   'apitoken.auto_publish_label': 'Auto-publish (skip my approval)',
   'apitoken.auto_publish_hint': 'Off (default): additions wait as drafts for you to publish. On: they go live immediately — only for agencies you fully trust.',
   'apitoken.auto_publish_on': 'auto-publish on',

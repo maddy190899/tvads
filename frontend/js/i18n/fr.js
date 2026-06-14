@@ -363,6 +363,8 @@ export default {
   'apitoken.agency_needs_playlists': 'Sélectionnez au moins une liste pour un jeton d\'agence.',
   'apitoken.agency_no_playlists': 'Créez d\'abord une liste : un jeton d\'agence doit en cibler une.',
   'apitoken.targets_label': 'Assignées :',
+  'apitoken.edit_targets': 'Modifier les listes',
+  'apitoken.targets_updated': 'Désignations mises à jour',
   'apitoken.auto_publish_label': 'Publication automatique (ignorer mon approbation)',
   'apitoken.auto_publish_hint': 'Désactivé (par défaut) : les ajouts attendent en brouillon votre publication. Activé : ils sont diffusés immédiatement, uniquement pour les agences de pleine confiance.',
   'apitoken.auto_publish_on': 'publication automatique activée',
