@@ -551,6 +551,21 @@ CREATE TABLE IF NOT EXISTS api_token_targets (
 );
 CREATE INDEX IF NOT EXISTS idx_api_tokens_user ON api_tokens(user_id);
 
+-- #73: agency-upload notification queue. The agency endpoint enqueues one row per item added
+-- (only when email is configured); a 15-min flush job groups per token+playlist+action and
+-- sends one digest per group, stamping sent_at ONLY after a successful send (failed -> retry).
+CREATE TABLE IF NOT EXISTS agency_notifications (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id TEXT NOT NULL,
+    token_id     TEXT NOT NULL,
+    playlist_id  TEXT NOT NULL,
+    action       TEXT NOT NULL,                            -- 'draft' | 'published'
+    content_id   TEXT,
+    created_at   INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    sent_at      INTEGER                                   -- NULL = unsent
+);
+CREATE INDEX IF NOT EXISTS idx_agency_notifications_unsent ON agency_notifications(sent_at);
+
 -- ===================== SCHEMA MIGRATIONS =====================
 
 CREATE TABLE IF NOT EXISTS schema_migrations (

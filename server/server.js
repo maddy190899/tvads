@@ -594,6 +594,10 @@ startAlertService(io);
 const { startActivationNudge } = require('./services/activationNudge');
 startActivationNudge();
 
+// #73: agency-upload digest flush (batched draft/published notifications to admins + owner)
+const { startAgencyDigest } = require('./services/agency-digest');
+startAgencyDigest();
+
 // Handle provisioning via WebSocket notification
 const { db } = require('./db/database');
 const originalProvisionRoute = require('./routes/provisioning');

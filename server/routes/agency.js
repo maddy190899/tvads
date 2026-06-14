@@ -16,6 +16,7 @@ const { ingestUploadedFile } = require('../lib/content-ingest');
 const { listDesignatedPlaylists } = require('../lib/agency-targets');
 const { listLayoutGeometry } = require('../lib/agency-layouts');
 const { publishPlaylist } = require('./playlists'); // #73: shared publish path for auto-publish
+const { isConfigured } = require('../services/email'); // #73: gate digest enqueue on SMTP being set
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -106,6 +107,13 @@ router.post('/playlists/:playlistId/items', (req, res) => {
     published = true;
   } else {
     db.prepare("UPDATE playlists SET status = 'draft', updated_at = strftime('%s','now') WHERE id = ?").run(req.params.playlistId);
+  }
+
+  // #73: enqueue a digest notification ONLY when email is configured, so the queue can't
+  // balloon on installs without SMTP. action reflects what actually happened (draft vs live).
+  if (isConfigured()) {
+    db.prepare('INSERT INTO agency_notifications (workspace_id, token_id, playlist_id, action, content_id) VALUES (?,?,?,?,?)')
+      .run(req.workspaceId, req.apiToken.id, req.params.playlistId, published ? 'published' : 'draft', content_id);
   }
 
   res.status(201).json({ id: itemId, playlist_id: req.params.playlistId, content_id, duration_sec, start_date: sd, end_date: ed, published });
