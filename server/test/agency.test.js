@@ -51,6 +51,11 @@ test('#73 agency token: full bite-suite (happy path + 4 confinement assertions)'
   assert.deepEqual(tokRes.body.target_playlist_ids, [pl1.id]);
   const atok = tokRes.body.token;
 
+  // GET targets (real path: agencyGate -> handler -> query): returns ONLY the designated pl1
+  const mine = await jfetch('/api/agency/playlists', { headers: { Authorization: 'Bearer ' + atok } });
+  assert.equal(mine.status, 200, 'agency can list its targets');
+  assert.deepEqual(mine.body.map(p => p.id), [pl1.id], 'GET /agency/playlists returns ONLY the designated playlist (not pl2)');
+
   // HAPPY PATH: upload via the agency token (shared ingest -> first-class content)
   const fd = new FormData();
   fd.append('file', new Blob([Buffer.from('x')], { type: 'image/png' }), 't.png');
@@ -77,4 +82,9 @@ test('#73 agency token: full bite-suite (happy path + 4 confinement assertions)'
   // BITE 4 (issuance): an agency token can't be BOUND to an out-of-workspace/unknown playlist -> 400
   const badTok = await jfetch('/api/tokens', jpost(jwt, { name: 'Bad', scope: 'agency', target_playlist_ids: ['nonexistent'] }));
   assert.equal(badTok.status, 400, 'cannot bind an out-of-workspace target at issuance');
+
+  // Portal graceful-failure trigger: an invalid/revoked key -> 401, which the portal catches
+  // to show "paste it again" (never a wall of 403s).
+  const bogus = await jfetch('/api/agency/playlists', { headers: { Authorization: 'Bearer st_bogus_invalid_key' } });
+  assert.equal(bogus.status, 401, 'invalid agency key -> 401 (portal resets to the entry screen)');
 });

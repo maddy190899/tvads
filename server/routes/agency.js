@@ -13,9 +13,17 @@ const { db } = require('../db/database');
 const upload = require('../middleware/upload');
 const { checkStorageLimit } = require('../middleware/subscription');
 const { ingestUploadedFile } = require('../lib/content-ingest');
+const { listDesignatedPlaylists } = require('../lib/agency-targets');
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// List the playlists THIS token may post to (so the portal can show them). No :playlistId,
+// so router.param doesn't apply - the confinement is the query in lib/agency-targets.js
+// (own token + bound workspace only). Bite-tested in test/agency-list.test.js.
+router.get('/playlists', (req, res) => {
+  res.json(listDesignatedPlaylists(db, req.apiToken.id, req.jwtWorkspaceId));
+});
 
 // #73 THE target seam. router.param fires for EVERY route with :playlistId, WITH the param,
 // BEFORE the handler - so no targeted route can skip the allowlist + bound-workspace check
