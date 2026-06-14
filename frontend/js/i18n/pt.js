@@ -353,6 +353,7 @@ export default {
   // Tokens de API
   'apitoken.title': 'Tokens de API',
   'apitoken.desc': 'Tokens de acesso pessoal para a API pública, restritos a este espaço de trabalho. Trate-os como senhas — qualquer pessoa com o token pode agir como você aqui.',
+  'apitoken.docs_link': 'Novo na API? Veja a documentação completa →',
   'apitoken.name_placeholder': 'ex.: Integração da agência',
   'apitoken.scope_read': 'Somente leitura',
   'apitoken.scope_write': 'Leitura e escrita',

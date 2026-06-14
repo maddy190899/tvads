@@ -353,6 +353,7 @@ export default {
   // Jetons d'API
   'apitoken.title': "Jetons d'API",
   'apitoken.desc': "Jetons d'accès personnels pour l'API publique, limités à cet espace de travail. Traitez-les comme des mots de passe : toute personne disposant du jeton peut agir en votre nom ici.",
+  'apitoken.docs_link': "Nouveau sur l'API ? Voir la documentation complète →",
   'apitoken.name_placeholder': 'p. ex. Intégration agence',
   'apitoken.scope_read': 'Lecture seule',
   'apitoken.scope_write': 'Lecture et écriture',

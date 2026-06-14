@@ -389,6 +389,7 @@ export default {
   // API Tokens
   'apitoken.title': 'API Tokens',
   'apitoken.desc': 'Personal access tokens for the public API, scoped to this workspace. Treat them like passwords — anyone with the token can act as you here.',
+  'apitoken.docs_link': 'New to the API? See the full documentation →',
   'apitoken.name_placeholder': 'e.g. Agency integration',
   'apitoken.scope_read': 'Read only',
   'apitoken.scope_write': 'Read & write',

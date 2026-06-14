@@ -62,7 +62,8 @@ export async function render(container) {
 
     <div class="settings-section">
       <h3>${t('apitoken.title')}</h3>
-      <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px">${t('apitoken.desc')}</p>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:8px">${t('apitoken.desc')}</p>
+      <p style="font-size:13px;margin-bottom:16px"><a href="/docs" target="_blank" rel="noopener" style="color:var(--accent)">${t('apitoken.docs_link')}</a></p>
       <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
         <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px">
           <label>${t('apitoken.col_name')}</label>
