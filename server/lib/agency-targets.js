@@ -17,4 +17,26 @@ function listDesignatedPlaylists(db, tokenId, workspaceId) {
   `).all(tokenId, workspaceId);
 }
 
-module.exports = { listDesignatedPlaylists };
+// #73: resolve which zone an agency item-add lands in, enforcing the zone grants. The grant
+// is the boundary; a body-supplied zone can pick WITHIN it but never escape it.
+//   - No zone grants for (token, playlist) -> whole-playlist/full-screen (zone_id NULL); a
+//     body zone_id is ignored (placement isn't agency-driven when nothing's granted).
+//   - Zone grants exist -> the item MUST land in a GRANTED zone:
+//       requested zone that IS granted -> use it (agency picks among its grants);
+//       requested zone NOT granted     -> { ok:false, reason:'forbidden' } (403);
+//       no request, exactly one grant  -> auto-place into it;
+//       no request, multiple grants    -> { ok:false, reason:'ambiguous' } (must pick).
+function resolveGrantedZone(db, tokenId, playlistId, requestedZoneId) {
+  const grants = db.prepare('SELECT zone_id FROM api_token_target_zones WHERE token_id = ? AND playlist_id = ?')
+    .all(tokenId, playlistId).map(r => r.zone_id);
+  if (!grants.length) return { ok: true, zoneId: null };
+  if (requestedZoneId) {
+    return grants.includes(requestedZoneId)
+      ? { ok: true, zoneId: requestedZoneId }
+      : { ok: false, reason: 'forbidden' };
+  }
+  if (grants.length === 1) return { ok: true, zoneId: grants[0] };
+  return { ok: false, reason: 'ambiguous' };
+}
+
+module.exports = { listDesignatedPlaylists, resolveGrantedZone };
