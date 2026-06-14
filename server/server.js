@@ -201,6 +201,11 @@ app.get('/openapi.yaml', (req, res) => {
 app.get('/docs', (req, res) => {
   res.sendFile(path.join(config.frontendDir, 'api-docs.html'));
 });
+// #73: the standalone agency portal (token-auth, NOT the JWT dashboard SPA). Served as its
+// own page so the agency never touches the dashboard login.
+app.get('/agency', (req, res) => {
+  res.sendFile(path.join(config.frontendDir, 'agency.html'));
+});
 
 // Serve frontend static files
 // JS/CSS/HTML: no-cache (always revalidate, uses ETag/304)
