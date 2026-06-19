@@ -153,6 +153,16 @@ Fix: set `current = pip_id` **before** building the media (so `loadImageInto`'s
 token matches). Confirmed on the emulator — the QR now renders in the PiP box
 over both a static image and live YouTube.
 
+### Content types verified on the emulator (over live YouTube)
+
+- **image** PiP (a QR PNG) — renders after the token-ordering fix above.
+- **web** PiP (an HTML page) — loads in the PiP WebView and **executes JS** (a
+  page that stamps `JS OK · <time>` into the DOM rendered correctly over the
+  playing video); composites above the main YouTube WebView. No code change
+  needed — web PiPs never went through the broken image path.
+- title + `background_color` box — paints above the video (the original cause-1
+  fix).
+
 ## If the magenta box is STILL hidden over YouTube on the test device
 
 Then it is the stronger form of cause (1): the WebView places its video on a
