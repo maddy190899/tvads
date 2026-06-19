@@ -162,6 +162,17 @@ over both a static image and live YouTube.
   needed — web PiPs never went through the broken image path.
 - title + `background_color` box — paints above the video (the original cause-1
   fix).
+- **`close_button: true`** — the server already forwarded this flag
+  (`routes/pip.js`) and it's in `openapi.yaml`, but no player rendered it (Tizen
+  deferred "close-button focus" as non-MVP; the web player has none). Implemented
+  on Android: a tappable ✕ floats at the box's top-right (a sibling of the box, so
+  it isn't clipped by the outline or dimmed by `opacity`) and clears THIS overlay
+  (id-matched) on tap. Only the ✕ is clickable; the rest of the full-screen
+  `pipLayout` stays touch-transparent so taps fall through to the content. Verified
+  on the emulator — tapping it removed the overlay and the video kept playing.
+  Parity note: the web/Tizen players still don't implement `close_button`; D-pad
+  focus of the ✕ on non-touch TV hardware is intentionally not wired (MVP =
+  touch/pointer only, matching the Tizen focus deferral).
 
 ## If the magenta box is STILL hidden over YouTube on the test device
 

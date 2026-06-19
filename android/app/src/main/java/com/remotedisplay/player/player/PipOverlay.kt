@@ -134,7 +134,36 @@ class PipOverlay(
                 else -> { lp.rightMargin = mx; lp.topMargin = my; Gravity.TOP or Gravity.END } // top-right
             }
 
-            pipLayout.addView(box, lp)
+            // Optional close button (close_button:true). Render a tappable ✕ floating at the
+            // box's top-right corner; tapping clears THIS overlay (id-matched). It lives in a
+            // FrameLayout wrapper that is a SIBLING of the box — so it isn't clipped by the
+            // box outline and isn't dimmed by the box's opacity. Only the button is clickable;
+            // the rest of pipLayout stays touch-transparent so taps fall through to content.
+            val attach: View = if (p.optBoolean("close_button", false)) {
+                val token = current
+                FrameLayout(context).apply {
+                    addView(box, FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+                    val d = dm.density
+                    addView(TextView(context).apply {
+                        text = "✕" // ✕
+                        setTextColor(Color.WHITE)
+                        textSize = 16f
+                        gravity = Gravity.CENTER
+                        background = GradientDrawable().apply {
+                            shape = GradientDrawable.OVAL; setColor(Color.argb(150, 0, 0, 0))
+                        }
+                        isClickable = true
+                        contentDescription = "Close"
+                        setOnClickListener { clear(token) }
+                    }, FrameLayout.LayoutParams((28 * d).toInt(), (28 * d).toInt()).apply {
+                        gravity = Gravity.TOP or Gravity.END
+                        val m = (6 * d).toInt(); topMargin = m; rightMargin = m
+                    })
+                }
+            } else box
+
+            pipLayout.addView(attach, lp)
             pipLayout.visibility = View.VISIBLE
             // current was set above (before media build) so loadImageInto's token matches.
 
