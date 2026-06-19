@@ -68,6 +68,13 @@ class PipOverlay(
             val w = p.optInt("width", 480).coerceIn(1, dm.widthPixels * 4)
             val h = p.optInt("height", 360).coerceIn(1, dm.heightPixels * 4)
 
+            // Set the slot token BEFORE building media: loadImageInto captures `current` as
+            // its drop-if-replaced token, and its decode finishes on a background thread that
+            // posts back AFTER show() returns. If current were still null here (teardown
+            // clears it), that guard would always fail and the decoded bitmap would be
+            // dropped — i.e. image PiPs never painted. (#109 follow-up.)
+            current = p.optString("pip_id", "(anon)")
+
             val box = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 clipToOutline = true
@@ -129,7 +136,7 @@ class PipOverlay(
 
             pipLayout.addView(box, lp)
             pipLayout.visibility = View.VISIBLE
-            current = p.optString("pip_id", "(anon)")
+            // current was set above (before media build) so loadImageInto's token matches.
 
             // #109 fix (1)/(3): the pip layer is a top-level view above the WebView (reparented
             // to the window content in MainActivity), but make sure it composites last and is

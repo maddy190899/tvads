@@ -137,6 +137,22 @@ reproduce the Fire TV / Android TV hardware-overlay punch-through that is the
 strongest form of cause (1). That still needs the real signage device — use the
 `pipDebug` magenta box there to confirm.
 
+### Follow-up bug found in emulator testing: image PiPs never painted the image
+
+Verifying an **image** PiP (a QR PNG) surfaced a separate, pre-existing defect
+(present on `main`, unrelated to the occlusion reparent): the image area was
+always blank — only the box background + title showed. Root cause in
+`PipOverlay.show()`: `teardown()` clears `current` to null, then `loadImageInto`
+captured `token = current` (null) as its drop-if-replaced guard, but `current`
+was only set to the new `pip_id` *after* the media was built. The decode finishes
+on a background thread and posts back **after** `show()` returns — so the guard
+`token != current` (null ≠ pip_id) was always true and **every decoded bitmap was
+dropped**. (Web PiPs and the box/title were unaffected, which masked it.)
+
+Fix: set `current = pip_id` **before** building the media (so `loadImageInto`'s
+token matches). Confirmed on the emulator — the QR now renders in the PiP box
+over both a static image and live YouTube.
+
 ## If the magenta box is STILL hidden over YouTube on the test device
 
 Then it is the stronger form of cause (1): the WebView places its video on a
