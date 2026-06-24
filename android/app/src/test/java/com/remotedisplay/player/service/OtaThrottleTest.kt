@@ -79,4 +79,19 @@ class OtaThrottleTest {
         assertTrue(OtaThrottle.shouldClearOnUpToDate(OtaThrottle.State(targetVersion = V, attempts = 2)))
         assertFalse(OtaThrottle.shouldClearOnUpToDate(OtaThrottle.State())) // nothing pending
     }
+
+    @Test fun statusForReflectsBackoffWindow() {
+        val now = 10_000L
+        // no target → none
+        assertEquals("none", OtaThrottle.statusFor(OtaThrottle.State(), now))
+        // under the cap → pending
+        assertEquals("pending", OtaThrottle.statusFor(
+            OtaThrottle.State(targetVersion = V, attempts = 1, lastAttemptAt = now), now))
+        // capped AND inside the window → manual update required
+        assertEquals("manual_update_required", OtaThrottle.statusFor(
+            OtaThrottle.State(targetVersion = V, attempts = MAX, lastAttemptAt = now), now + WINDOW - 1))
+        // capped but window elapsed (a retry is due) → pending, not stuck
+        assertEquals("pending", OtaThrottle.statusFor(
+            OtaThrottle.State(targetVersion = V, attempts = MAX, lastAttemptAt = now), now + WINDOW + 1))
+    }
 }

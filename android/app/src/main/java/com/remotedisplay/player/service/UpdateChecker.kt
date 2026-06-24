@@ -50,6 +50,14 @@ class UpdateChecker(private val context: Context) {
         try { otaLogReporter?.invoke(level, message) } catch (_: Throwable) {}
     }
 
+    // #139 Phase 2 (Option B): announce an OTA status TRANSITION to the server (wired by
+    // MainActivity to WebSocketService.sendOtaStatus, which reads the just-persisted state).
+    // Fired ONLY at the two transitions — clear and enter-backoff — so the dashboard badge
+    // updates promptly without waiting for a reconnect, with no per-poll/heartbeat chatter.
+    // Lazy/null-safe so binding order doesn't matter, same as otaLogReporter.
+    var otaStatusReporter: (() -> Unit)? = null
+    private fun announceOtaStatus() { try { otaStatusReporter?.invoke() } catch (_: Throwable) {} }
+
     // The PackageInstaller session reports its status (incl. STATUS_PENDING_USER_ACTION,
     // which Android 13+ returns for non-device-owner installers) via this broadcast.
     // Without handling it the committed session just stalls and the update never
@@ -136,6 +144,7 @@ class UpdateChecker(private val context: Context) {
                         report("info", "OTA complete: now on $currentVersion — clearing update state")
                         config.clearOtaState()
                         cleanupApks(null)
+                        announceOtaStatus() // transition -> emits 'none' so the badge clears promptly
                     }
                 } else if (downloadUrl.isNotEmpty()) {
                     maybeUpdate(latestVersion, "${config.serverUrl}$downloadUrl")
@@ -183,6 +192,7 @@ class UpdateChecker(private val context: Context) {
         Log.i(TAG, "Install launched for $latestVersion (attempt ${afterLaunch.attempts}/${OtaThrottle.MAX_INSTALL_ATTEMPTS})")
         if (enteredBackoff) {
             report("warn", "Update $latestVersion available but not installing after ${afterLaunch.attempts} attempts — manual update required (backing off to one retry per ${OtaThrottle.BACKOFF_MS / 3_600_000L}h)")
+            announceOtaStatus() // transition -> emits 'manual_update_required'
         }
     }
 
@@ -335,9 +345,18 @@ class UpdateChecker(private val context: Context) {
     private fun verifyApkSignature(apkFile: File): Boolean {
         return try {
             val pm = context.packageManager
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            // #139: getPackageArchiveInfo(GET_SIGNING_CERTIFICATES).signingInfo is NULL for
+            // ARCHIVE files on API 28/29 (it's only populated from API 30) — so the modern flag
+            // reads 0 certs from a downloaded APK and we'd wrongly REFUSE a legitimate update,
+            // which is the real Fire OS 8 / Android 9 OTA-loop cause. Below API 30, read the
+            // archive's signer via the legacy GET_SIGNATURES + .signatures (its v1/JAR cert,
+            // which IS populated on 28/29). This reads the cert CORRECTLY — it does not weaken
+            // verification: the archive's signer is still extracted and compared to the installed
+            // app's signer below, and a mismatch / zero-cert APK is still rejected.
+            val archiveUsesSigningInfo = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R // API 30
+            val archiveFlags = if (archiveUsesSigningInfo)
                 PackageManager.GET_SIGNING_CERTIFICATES else @Suppress("DEPRECATION") PackageManager.GET_SIGNATURES
-            val downloaded = pm.getPackageArchiveInfo(apkFile.absolutePath, flags)
+            val downloaded = pm.getPackageArchiveInfo(apkFile.absolutePath, archiveFlags)
             if (downloaded == null) {
                 Log.e(TAG, "Could not parse downloaded APK")
                 return false
@@ -346,14 +365,20 @@ class UpdateChecker(private val context: Context) {
                 Log.e(TAG, "APK package mismatch: ${downloaded.packageName} != ${context.packageName}")
                 return false
             }
-            val installed = pm.getPackageInfo(context.packageName, flags)
-            val downloadedSigs = signingCertHashes(downloaded)
-            val installedSigs = signingCertHashes(installed)
+            // INSTALLED-app read: signingInfo IS populated for installed packages on API 28+,
+            // so keep the modern flag there (this side already worked).
+            val installedUsesSigningInfo = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P // API 28
+            val installedFlags = if (installedUsesSigningInfo)
+                PackageManager.GET_SIGNING_CERTIFICATES else @Suppress("DEPRECATION") PackageManager.GET_SIGNATURES
+            val installed = pm.getPackageInfo(context.packageName, installedFlags)
+            val downloadedSigs = signingCertHashes(downloaded, archiveUsesSigningInfo)
+            val installedSigs = signingCertHashes(installed, installedUsesSigningInfo)
             if (downloadedSigs.isEmpty() || installedSigs.isEmpty()) {
                 Log.e(TAG, "Missing signing certificates (downloaded=${downloadedSigs.size}, installed=${installedSigs.size})")
                 return false
             }
-            // Share at least one current signing certificate.
+            // Require a non-empty overlap of signer certs (handles multi-signer / cert-rotation
+            // the same way the API>=30 path does: compare the full current signer sets).
             val match = downloadedSigs.any { it in installedSigs }
             if (!match) Log.e(TAG, "APK signing certificate does not match installed app")
             match
@@ -363,8 +388,13 @@ class UpdateChecker(private val context: Context) {
         }
     }
 
-    private fun signingCertHashes(info: PackageInfo): Set<String> {
-        val sigs: Array<Signature>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+    // Read the signer-cert SHA-256 set from a PackageInfo. `useSigningInfo` must match the flag
+    // it was fetched with: GET_SIGNING_CERTIFICATES -> signingInfo.apkContentsSigners (modern;
+    // multi-signer + rotation aware), GET_SIGNATURES -> legacy .signatures (the only field
+    // populated for ARCHIVE reads on API 28/29). Both yield the same cert for a normally-signed
+    // APK; the caller compares as sets so an overlapping signer still verifies.
+    private fun signingCertHashes(info: PackageInfo, useSigningInfo: Boolean): Set<String> {
+        val sigs: Array<Signature>? = if (useSigningInfo) {
             info.signingInfo?.apkContentsSigners
         } else {
             @Suppress("DEPRECATION") info.signatures

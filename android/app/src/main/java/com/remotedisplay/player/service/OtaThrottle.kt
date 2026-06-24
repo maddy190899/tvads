@@ -57,4 +57,18 @@ object OtaThrottle {
 
     /** A check found us already on the latest. True if there was pending OTA state to clear. */
     fun shouldClearOnUpToDate(state: State): Boolean = state.targetVersion.isNotEmpty()
+
+    /**
+     * #139 Phase 2: operator-facing status for the dashboard.
+     *  - "none"                    : no update pending.
+     *  - "manual_update_required"  : capped AND still inside the backoff window — this device
+     *                                can't self-install; a human needs to update it.
+     *  - "pending"                 : an update is in progress / will retry (under the cap, or the
+     *                                window has elapsed so a retry is due).
+     */
+    fun statusFor(state: State, now: Long): String = when {
+        state.targetVersion.isEmpty() -> "none"
+        state.attempts >= MAX_INSTALL_ATTEMPTS && now - state.lastAttemptAt < BACKOFF_MS -> "manual_update_required"
+        else -> "pending"
+    }
 }
