@@ -225,6 +225,11 @@ const migrations = [
   "ALTER TABLE devices ADD COLUMN ota_target_version TEXT",
   "ALTER TABLE devices ADD COLUMN ota_attempts INTEGER DEFAULT 0",
   "ALTER TABLE devices ADD COLUMN ota_updated_at INTEGER",
+  // #142: index device_status_log for the per-device + time-window access pattern.
+  // schema.sql creates this on fresh installs; this migration covers existing DBs.
+  // Both the dashboard uptime query and the retention prune were full scans — the
+  // dashboard-degradation cause once the table reached 1M+ rows.
+  "CREATE INDEX IF NOT EXISTS idx_device_status_log_device_ts ON device_status_log(device_id, timestamp)",
 ];
 // Apply each ALTER idempotently. A "duplicate column name" / "already exists"
 // error means the column is already present (expected on a migrated DB) - benign.

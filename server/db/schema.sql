@@ -463,6 +463,11 @@ CREATE TABLE IF NOT EXISTS device_status_log (
     status          TEXT NOT NULL,
     timestamp       INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
+-- #142: index the per-device + time-window access pattern. Both the dashboard
+-- uptime query (WHERE device_id=? AND timestamp>?) and the retention prune
+-- (WHERE device_id=? AND timestamp<?) were full table scans; at 1M+ rows that
+-- was the dashboard-degradation cause in the outage report.
+CREATE INDEX IF NOT EXISTS idx_device_status_log_device_ts ON device_status_log(device_id, timestamp);
 
 -- ===================== DEVICE FINGERPRINTS =====================
 
@@ -482,13 +487,6 @@ CREATE TABLE IF NOT EXISTS alert_configs (
     enabled         INTEGER NOT NULL DEFAULT 1,
     config          TEXT NOT NULL DEFAULT '{}',
     created_at      INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-);
-
-CREATE TABLE IF NOT EXISTS device_status_log (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    device_id       TEXT NOT NULL,
-    status          TEXT NOT NULL,
-    timestamp       INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
 
 -- ===================== PLAYER DEBUG LOGS =====================
