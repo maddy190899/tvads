@@ -159,4 +159,19 @@ module.exports = {
   // legit and below the flood. Easy to retune via env.
   contentAckMaxPerWindow: parseInt(process.env.CONTENT_ACK_MAX_PER_WINDOW) || 20,
   contentAckRateWindowMs: parseInt(process.env.CONTENT_ACK_RATE_WINDOW_MS) || 10000,
+
+  // #143 fingerprint-reclaim liveness. A reinstalled app (same fingerprint, no
+  // device_id, has pairing_code) may reclaim its old device's identity once that
+  // device is gone by RUNTIME signals: no live socket AND last heartbeat older than
+  // this settle window. Previously an effective 24h calendar grace treated a device
+  // merely offline <24h as "active", so a legitimately-gone device (liveConn=false,
+  // status=offline, stale heartbeat) could never reclaim and retried every ~2s,
+  // flooding logs (Bold beta1). Settle = the max reclaim wait; keep it comfortably
+  // above heartbeatTimeout (45s) so a brief blip isn't mistaken for "gone".
+  // SECURITY TRADEOFF: this also shortens the anti-(fingerprint-theft) window from
+  // 24h — raise it to re-tighten, at the cost of reinstall latency. Tuning guess.
+  reclaimSettleSeconds: parseInt(process.env.RECLAIM_SETTLE_SECONDS) || 300,
+  // #143 throttle the reclaim-deferred log to once per device per window, so a
+  // retrying/stuck device can't flood stdout (same discipline as the content-ack shed log).
+  reclaimRejectLogWindowMs: parseInt(process.env.RECLAIM_REJECT_LOG_WINDOW_MS) || 60000,
 };

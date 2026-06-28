@@ -34,6 +34,10 @@ const PLAY_LOG_MIN_GAP_MS = 2000;
 // #142 dedup + #143 per-device rate budget + global loop-lag valve for content-acks
 // all live in one control: lib/content-ack-limiter.js (required above as
 // contentAckLimiter). Kept out of this file so there is a single limiter on the path.
+
+// #143 fingerprint-reclaim deferral log throttle: deviceId -> last-logged ms, so a
+// device retrying reclaim every ~2s logs at most once per reclaimRejectLogWindowMs.
+const lastReclaimRejectLogAt = new Map();
 const { getUserPlan, getUserDeviceCount } = require('../middleware/subscription');
 // Phase 2.3: deviceRoom() resolves a device_id to its workspace room so
 // dashboardNs.emit can be scoped instead of broadcast platform-wide.
@@ -294,20 +298,31 @@ module.exports = function setupDeviceSocket(io) {
               const oldDevice = db.prepare('SELECT * FROM devices WHERE id = ?').get(existing.device_id);
               if (oldDevice) {
                 // Fingerprint reclaim guard: a leaked/duplicated fingerprint shouldn't be enough
-                // to take over a live device. Reject the reclaim if the device is currently
-                // online OR has been online within the last 24h — by then a real reinstall has
-                // had plenty of time to come back, but a credential thief is more likely caught.
+                // to take over a LIVE device. #143: decide "still alive" from RUNTIME signals —
+                // a live socket, OR a genuinely recent heartbeat (within the settle window). The
+                // old check used `secondsSince < 24h`, which treated a device merely offline <24h
+                // as "active": a legitimately-gone device (liveConn=false, status=offline, stale
+                // heartbeat) could never reclaim and retried every ~2s, flooding logs (Bold beta1
+                // / 2febcaa9, 1984694c, 139159eb). NOT a missing clear — liveConn IS removed on
+                // disconnect + the offline-timeout sweep, and status IS set offline on both; the
+                // 24h TIME gate was the cause. A device gone by every runtime signal is reclaimable.
                 const liveConn = heartbeat.getConnection(existing.device_id);
-                const RECLAIM_GRACE_SECONDS = 24 * 60 * 60;
                 const lastBeat = oldDevice.last_heartbeat || 0;
                 const secondsSince = Math.floor(Date.now() / 1000) - lastBeat;
-                if (liveConn || (oldDevice.status === 'online') || secondsSince < RECLAIM_GRACE_SECONDS) {
-                  console.warn(`Fingerprint reclaim rejected for ${existing.device_id}: device active (status=${oldDevice.status}, ${secondsSince}s since last heartbeat, liveConn=${!!liveConn})`);
+                const stillAlive = !!liveConn || secondsSince < config.reclaimSettleSeconds;
+                if (stillAlive) {
+                  // Log at most once per device per window so a retrying/stuck device can't flood stdout.
+                  const nowMs = Date.now();
+                  if (nowMs - (lastReclaimRejectLogAt.get(existing.device_id) || 0) >= config.reclaimRejectLogWindowMs) {
+                    lastReclaimRejectLogAt.set(existing.device_id, nowMs);
+                    console.warn(`Fingerprint reclaim deferred for ${existing.device_id}: still settling (status=${oldDevice.status}, ${secondsSince}s since heartbeat, liveConn=${!!liveConn}); reclaimable after ${config.reclaimSettleSeconds}s offline`);
+                  }
                   socket.emit('device:auth-error', {
-                    error: 'This display is currently active. If you reinstalled the app, the original device must be offline for 24 hours before its slot can be reclaimed.'
+                    error: `This display was recently active. If you reinstalled the app, retry after it has been offline for ${config.reclaimSettleSeconds} seconds.`
                   });
                   return;
                 }
+                lastReclaimRejectLogAt.delete(existing.device_id); // reclaim proceeding — clear any deferral log state
 
                 // Fingerprint matched — this is a reinstalled app reconnecting to its old device.
                 // Issue a fresh token so the app can authenticate going forward.
