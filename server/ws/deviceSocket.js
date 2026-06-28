@@ -445,6 +445,16 @@ module.exports = function setupDeviceSocket(io) {
           heartbeat.registerConnection(device_id, socket.id);
           socket.join(device_id);
           socket.emit('device:registered', { device_id, device_token: tokenToSend, status: 'online' });
+          // #143: a device paired/claimed server-side (user_id set) that RECONNECTS must be told
+          // it's paired — the app leaves the Connect page ONLY on 'device:paired' (web: hides the
+          // setup screen; Android ProvisioningActivity.onPaired -> MainActivity). The
+          // /api/provision/pair endpoint pushes device:paired to a LIVE socket at pair time
+          // (server.js), but a screen paired while disconnected — or that reconnects after pairing
+          // — never received it and sat on the Connect page forever showing the URL (Bold #143).
+          // Re-send the exact event the client already listens for; no client change needed.
+          if (device.user_id) {
+            socket.emit('device:paired', { device_id, name: device.name || 'Display' });
+          }
           logDeviceStatus(device_id, 'online');
           // Flush any commands/playlist-updates queued while this device was offline.
           commandQueue.flushQueue(deviceNs, device_id, buildPlaylistPayload);
