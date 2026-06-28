@@ -143,4 +143,10 @@ module.exports = {
   // is LOWER than the old hardcoded 7 days (the reporter's bloat happened under 7d);
   // 2-3 days is plenty for the dashboard's 24h uptime view + diagnostics.
   statusLogRetentionDays: parseFloat(process.env.STATUS_LOG_RETENTION_DAYS) || 3,
+
+  // #142 content-ack dedup window (deviceSocket.js). A device (esp. older apps)
+  // can spam "content <id>: ready" for the same item; suppress identical
+  // (device_id, content_id, status) reports within this window. A status CHANGE
+  // has a different key and passes immediately. In-memory; resets on restart.
+  contentAckDedupMs: parseInt(process.env.CONTENT_ACK_DEDUP_MS) || 10000,
 };

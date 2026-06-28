@@ -28,6 +28,12 @@ const OFFLINE_DEBOUNCE_MS = 5000;
 // event is still forwarded every time, so the UI is unaffected. In-memory only.
 const lastPlayLogAt = new Map();
 const PLAY_LOG_MIN_GAP_MS = 2000;
+
+// #142 content-ack dedup. An older app can spam "content <id>: ready" for the same
+// item; each was logged + emitted individually (secondary load). Suppress identical
+// (device_id, content_id, status) reports within config.contentAckDedupMs. A status
+// CHANGE has a different key and passes immediately. In-memory; resets on restart.
+const lastContentAck = new Map();
 const { getUserPlan, getUserDeviceCount } = require('../middleware/subscription');
 // Phase 2.3: deviceRoom() resolves a device_id to its workspace room so
 // dashboardNs.emit can be scoped instead of broadcast platform-wide.
@@ -579,6 +585,13 @@ module.exports = function setupDeviceSocket(io) {
       if (!requireDeviceAuth()) return;
       const { device_id, content_id, status } = data;
       if (device_id !== currentDeviceId) return;
+      // #142: drop repeats of the same (device, content, status) within the dedup
+      // window. Only a change (new content/status) or a report after the window
+      // logs+emits, so a device spamming the same "ready" can't add load.
+      const ackKey = `${device_id}|${content_id}|${status}`;
+      const nowAck = Date.now();
+      if (nowAck - (lastContentAck.get(ackKey) || 0) < config.contentAckDedupMs) return;
+      lastContentAck.set(ackKey, nowAck);
       console.log(`Device ${device_id} content ${content_id}: ${status}`);
       emitToDeviceWorkspace(dashboardNs, device_id, 'dashboard:content-ack', { device_id, content_id, status });
     });
