@@ -263,6 +263,24 @@ module.exports = function setupDeviceSocket(io) {
     socket.on('device:register', (data) => {
       const { pairing_code, device_id, device_token, device_info, fingerprint } = data;
 
+      // #143 operator KILL SWITCH — the FIRST gate, before the fingerprint block,
+      // the reconnect throttle, any DB writes, or playlist build. A device flagged
+      // `blocked` is refused immediately. Settable by DIRECT SQLite during an outage
+      // (dashboard down):  UPDATE devices SET blocked = 1 WHERE id = '<device_id>';
+      // The row is re-read on every register, so a hand-edited UPDATE takes effect on
+      // the device's NEXT reconnect with NO server restart. Unblock: blocked = 0.
+      // Unlike nulling the token (#143: that re-provisioned instead of locking out),
+      // this is an explicit, enforceable block.
+      if (device_id) {
+        const blk = db.prepare('SELECT blocked FROM devices WHERE id = ?').get(device_id);
+        if (blk && blk.blocked) {
+          console.warn(`[blocked] refused device ${device_id} (operator block) from ${getClientIp(socket)}`);
+          socket.emit('device:auth-error', { error: 'Device blocked' });
+          process.nextTick(() => { try { socket.disconnect(true); } catch (_) { /* */ } });
+          return;
+        }
+      }
+
       // Track device fingerprint to prevent reinstall abuse
       if (fingerprint) {
         try {
@@ -353,9 +371,16 @@ module.exports = function setupDeviceSocket(io) {
           // reconnected" and reading as connection instability (#134 — there were 1415
           // "reconnected" logs against only ~30 real socket connects and 0 heartbeat timeouts).
           const isPlaylistRefresh = currentDeviceId === device_id;
-          // Validate device token (skip for legacy devices that don't have a token yet)
-          if (device.device_token && !validateDeviceToken(device_id, device_token)) {
-            console.warn(`Invalid device token for ${device_id} from ${getClientIp(socket)} — received_len=${(device_token || '').length}, stored_len=${device.device_token.length}, received_prefix=${(device_token || '').substring(0, 8)}, stored_prefix=${device.device_token.substring(0, 8)}`);
+          // #143 AUTH FIX: an already-provisioned device (it has a row — every row,
+          // even `provisioning`, is created WITH a token) presenting a null/empty/
+          // invalid token is NOT authenticated — reject and disconnect. The old guard
+          // `device.device_token && !validate(...)` short-circuited on a NULL stored
+          // token, so nulling a device's token RE-PROVISIONED it (auth skipped + a
+          // fresh token minted) instead of locking it out (Bold #143 / 75c2a08a).
+          // validateDeviceToken already returns false for null-stored/missing/mismatch.
+          // First pairing is the pairing_code path below (no device_id) — unaffected.
+          if (!validateDeviceToken(device_id, device_token)) {
+            console.warn(`Invalid/missing device token for ${device_id} from ${getClientIp(socket)} — received_len=${(device_token || '').length}, has_stored_token=${!!device.device_token}`);
             socket.emit('device:auth-error', { error: 'Invalid device token' });
             return;
           }
@@ -388,12 +413,10 @@ module.exports = function setupDeviceSocket(io) {
           db.prepare("UPDATE devices SET status = 'online', last_heartbeat = strftime('%s','now'), ip_address = ?, updated_at = strftime('%s','now') WHERE id = ?")
             .run(getClientIp(socket), device_id);
 
-          // Generate token for legacy devices that don't have one yet
-          let tokenToSend = device.device_token;
-          if (!tokenToSend) {
-            tokenToSend = generateDeviceToken();
-            db.prepare('UPDATE devices SET device_token = ? WHERE id = ?').run(tokenToSend, device_id);
-          }
+          // #143: past the validateDeviceToken gate above the stored token is
+          // guaranteed non-null, so we just echo it back. The old "mint a token for a
+          // null-token device" path is removed — that was the re-provisioning vector.
+          const tokenToSend = device.device_token;
 
           if (device_info) {
             db.prepare(`UPDATE devices SET android_version = ?, app_version = ?, screen_width = ?, screen_height = ?, render_width = ?, render_height = ?,

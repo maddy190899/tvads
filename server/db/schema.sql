@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS devices (
     name            TEXT NOT NULL DEFAULT 'Unnamed Display',
     pairing_code    TEXT UNIQUE,
     status          TEXT NOT NULL DEFAULT 'offline',
+    blocked         INTEGER NOT NULL DEFAULT 0,
     last_heartbeat  INTEGER,
     ip_address      TEXT,
     android_version TEXT,
