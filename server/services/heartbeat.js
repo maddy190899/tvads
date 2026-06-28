@@ -40,13 +40,8 @@ function startHeartbeatChecker(io) {
       }
     }
 
-    // Cleanup: delete unclaimed provisioning devices older than 24 hours
-    // Keep imported devices (they have user_id set) so users can re-pair them
-    db.prepare(`
-      DELETE FROM devices WHERE status = 'provisioning'
-      AND user_id IS NULL
-      AND created_at < strftime('%s','now') - (365 * 86400)
-    `).run();
+    // Cleanup: delete unclaimed provisioning devices older than 24 hours.
+    pruneProvisioningDevices();
 
     // Cleanup: prune play logs older than 90 days
     db.prepare(`
@@ -91,11 +86,25 @@ function getAllConnections() {
   return deviceConnections;
 }
 
+// #142: sweep unclaimed provisioning devices older than 24h. The window previously
+// read `365 * 86400` (a YEAR), contradicting its own "older than 24 hours" comment,
+// so socket-register pairing junk lingered far longer than intended. Imported
+// devices keep a user_id and are preserved so they can be re-paired. Extracted from
+// the interval above so the correctness fix is unit-testable. Returns rows deleted.
+function pruneProvisioningDevices() {
+  return db.prepare(`
+    DELETE FROM devices
+    WHERE status = 'provisioning' AND user_id IS NULL
+    AND created_at < strftime('%s','now') - (24 * 3600)
+  `).run().changes;
+}
+
 module.exports = {
   startHeartbeatChecker,
   registerConnection,
   updateHeartbeat,
   removeConnection,
   getConnection,
-  getAllConnections
+  getAllConnections,
+  pruneProvisioningDevices
 };
