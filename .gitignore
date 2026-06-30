@@ -24,7 +24,7 @@ android/build/
 android/app/build/
 android/local.properties
 android/release-key.jks
-*.apk
+#*.apk
 *.aab
 *.wgt
 *.tar.gz
