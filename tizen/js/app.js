@@ -89,7 +89,7 @@
   var socket = null;
   var deviceId = get(LS.id);
   var deviceToken = get(LS.token);
-  var serverUrl = get(LS.url);
+  var serverUrl = get(LS.url) || 'https://tv.techyzer.in';
   var heartbeatTimer = null;
   var beatCount = 0;
   var authenticated = false; // #118: true only between device:registered and disconnect/auth-error
