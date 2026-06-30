@@ -359,4 +359,28 @@ router.put('/branding', requirePlatformAdmin, (req, res) => {
   res.json(platformDefaultRow(db));
 });
 
+// PUT /api/admin/users/:id/custom-limit - platform-admin only.
+// Sets a custom screen limit (device count limit) for a user, overriding the plan default.
+router.put('/users/:id/custom-limit', requirePlatformAdmin, (req, res) => {
+  const target = db.prepare('SELECT id, email FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+
+  let maxDevices = req.body?.max_devices;
+  if (maxDevices === undefined || maxDevices === '' || maxDevices === null) {
+    maxDevices = null;
+  } else {
+    maxDevices = parseInt(maxDevices, 10);
+    if (isNaN(maxDevices) || maxDevices < -1) {
+      return res.status(400).json({ error: 'Invalid screen limit' });
+    }
+  }
+
+  db.prepare('UPDATE users SET custom_max_devices = ?, updated_at = strftime(\'%s\',\'now\') WHERE id = ?')
+    .run(maxDevices, target.id);
+
+  logActivity(req.user.id, 'admin_set_custom_limit', `target: ${target.email}, limit: ${maxDevices !== null ? maxDevices : 'default'}`, null, getClientIp(req), null);
+
+  res.json({ success: true, custom_max_devices: maxDevices });
+});
+
 module.exports = router;

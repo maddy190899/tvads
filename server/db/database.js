@@ -234,6 +234,8 @@ const migrations = [
   // schema.sql creates these on fresh installs; this covers existing DBs.
   "CREATE TABLE IF NOT EXISTS event_loop_lag (id INTEGER PRIMARY KEY AUTOINCREMENT, sampled_at INTEGER NOT NULL DEFAULT (strftime('%s','now')), mean_ms REAL NOT NULL, p50_ms REAL NOT NULL, p99_ms REAL NOT NULL, max_ms REAL NOT NULL, band TEXT NOT NULL DEFAULT 'normal')",
   "CREATE INDEX IF NOT EXISTS idx_event_loop_lag_sampled ON event_loop_lag(sampled_at)",
+  // Custom screen limits override per user (for workspace admins / SaaS agencies)
+  "ALTER TABLE users ADD COLUMN custom_max_devices INTEGER DEFAULT NULL",
 ];
 // Apply each ALTER idempotently. A "duplicate column name" / "already exists"
 // error means the column is already present (expected on a migrated DB) - benign.

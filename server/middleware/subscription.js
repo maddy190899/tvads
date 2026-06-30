@@ -27,9 +27,13 @@ function getUserPlan(userId) {
       // Re-fetch with free plan
       return getUserPlan(userId);
     }
-  } else {
+  } else if (user) {
     user.trial_active = false;
     user.trial_days_left = 0;
+  }
+
+  if (user && user.custom_max_devices !== null && user.custom_max_devices !== undefined) {
+    user.max_devices = user.custom_max_devices;
   }
 
   return user;

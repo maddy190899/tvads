@@ -1,4 +1,4 @@
-﻿import { api } from '../api.js';
+import { api } from '../api.js';
 import { showToast } from '../components/toast.js';
 import { esc, isPlatformAdmin } from '../utils.js';
 import { t } from '../i18n.js';
@@ -269,6 +269,12 @@ async function loadUsers() {
                 <select class="input" style="max-width:130px;width:100%;background:var(--bg-input);font-size:12px;padding:4px" data-plan-user="${u.id}">
                   ${plans.map(p => `<option value="${p.id}" ${u.plan_id === p.id ? 'selected' : ''}>${p.display_name}</option>`).join('')}
                 </select>
+                <div style="margin-top:4px;display:flex;align-items:center;gap:4px">
+                  <span style="font-size:10px;color:var(--text-muted)">Limit:</span>
+                  <input type="number" class="input" style="width:60px;font-size:11px;padding:2px 4px;background:var(--bg-input);border:1px solid var(--border)" 
+                         placeholder="Plan" value="${u.custom_max_devices !== null && u.custom_max_devices !== undefined ? u.custom_max_devices : ''}" 
+                         data-custom-limit-user="${u.id}" min="-1">
+                </div>
               </td>
               ${workspaceCell(u)}
               <td style="padding:8px;white-space:nowrap">
@@ -297,6 +303,17 @@ async function loadUsers() {
         try {
           await API('/subscription/assign', { method: 'POST', body: JSON.stringify({ user_id: select.dataset.planUser, plan_id: select.value }) });
           showToast(t('admin.toast.plan_updated'), 'success');
+        } catch (err) { showToast(err.message, 'error'); loadUsers(); }
+      };
+    });
+
+    el.querySelectorAll('[data-custom-limit-user]').forEach(input => {
+      input.onchange = async () => {
+        try {
+          const val = input.value === '' ? null : parseInt(input.value, 10);
+          await API(`/admin/users/${input.dataset.customLimitUser}/custom-limit`, { method: 'PUT', body: JSON.stringify({ max_devices: val }) });
+          showToast(t('admin.toast.limit_updated') || 'Custom limit updated', 'success');
+          loadUsers();
         } catch (err) { showToast(err.message, 'error'); loadUsers(); }
       };
     });

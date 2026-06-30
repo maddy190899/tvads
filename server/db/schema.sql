@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS users (
     totp_secret_enc TEXT,
     totp_enabled    INTEGER NOT NULL DEFAULT 0,
     totp_last_step  INTEGER NOT NULL DEFAULT 0,
+    custom_max_devices INTEGER DEFAULT NULL,
     created_at      INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     updated_at      INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );

@@ -602,7 +602,7 @@ router.get('/users', requireAuth, requireAdmin, (req, res) => {
     // yields that row's values; the CASE blanks them when count != 1 so we never
     // surface a single workspace name for a multi-membership user.
     const users = db.prepare(`
-      SELECT u.id, u.email, u.name, u.role, u.auth_provider, u.avatar_url, u.plan_id, u.created_at, u.last_login,
+      SELECT u.id, u.email, u.name, u.role, u.auth_provider, u.avatar_url, u.plan_id, u.custom_max_devices, u.created_at, u.last_login,
              COUNT(wm.workspace_id) AS workspace_count,
              CASE WHEN COUNT(wm.workspace_id) = 1 THEN MAX(w.id)   END AS workspace_id,
              CASE WHEN COUNT(wm.workspace_id) = 1 THEN MAX(w.name) END AS workspace_name,
@@ -618,7 +618,7 @@ router.get('/users', requireAuth, requireAdmin, (req, res) => {
   } else {
     // Admin sees themselves + users in their teams
     const users = db.prepare(`
-      SELECT DISTINCT u.id, u.email, u.name, u.role, u.auth_provider, u.avatar_url, u.plan_id, u.created_at
+      SELECT DISTINCT u.id, u.email, u.name, u.role, u.auth_provider, u.avatar_url, u.plan_id, u.custom_max_devices, u.created_at
       FROM users u
       LEFT JOIN team_members tm ON u.id = tm.user_id
       WHERE u.id = ? OR tm.team_id IN (SELECT team_id FROM team_members WHERE user_id = ?)
