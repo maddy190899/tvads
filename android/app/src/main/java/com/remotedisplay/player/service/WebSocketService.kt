@@ -576,6 +576,21 @@ class WebSocketService : Service() {
         } catch (e: Throwable) { Log.w("WebSocketService", "sendOtaStatus: ${e.message}") }
     }
 
+    fun sendPlayEvent(event: String, contentId: String, contentName: String, durationSec: Int? = null, completed: Boolean? = null) {
+        if (socket?.connected() != true) return
+        try {
+            val data = JSONObject().apply {
+                put("device_id", config.deviceId)
+                put("event", event)
+                put("content_id", contentId)
+                put("content_name", contentName)
+                if (durationSec != null) put("duration_sec", durationSec)
+                if (completed != null) put("completed", completed)
+            }
+            socket?.emit("device:play-event", data)
+        } catch (e: Throwable) { Log.w("WebSocketService", "sendPlayEvent: ${e.message}") }
+    }
+
     fun sendPlaybackState(contentId: String, positionSec: Float) {
         if (socket?.connected() != true) return
         try {

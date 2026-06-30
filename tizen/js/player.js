@@ -31,6 +31,8 @@ function PlaylistPlayer(stageEl, getBase) {
   this.itemStartedAt = 0;      // wall position fallback for non-video items
   this.DEFAULT_DURATION = 10;
   this.MIN_DURATION = 3;
+  this.onPlayEvent = null;     // callback: function(event, item, completed)
+  this.lastItem = null;
 }
 
 PlaylistPlayer.prototype.load = function (assignments) {
@@ -52,8 +54,18 @@ PlaylistPlayer.prototype.load = function (assignments) {
   this.startPlayback();
 };
 
+PlaylistPlayer.prototype.endCurrentPlay = function (completed) {
+  if (this.lastItem) {
+    if (this.onPlayEvent && !this.wallFollower) {
+      this.onPlayEvent('play_end', this.lastItem, completed);
+    }
+    this.lastItem = null;
+  }
+};
+
 PlaylistPlayer.prototype.stop = function () {
   if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+  this.endCurrentPlay(false);
   this.clearStage();
 };
 
@@ -65,6 +77,7 @@ PlaylistPlayer.prototype.clearStage = function () {
 };
 
 PlaylistPlayer.prototype.idle = function () {
+  this.endCurrentPlay(false);
   this.clearStage();
   this.stage.innerHTML =
     '<div class="card" style="position:relative"><h1>TechYzer</h1>' +
@@ -163,6 +176,7 @@ PlaylistPlayer.prototype.startPlayback = function () {
 // Every item filtered out: idle and re-check shortly (a daypart may open).
 PlaylistPlayer.prototype.nothingScheduled = function () {
   if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+  this.endCurrentPlay(false);
   this.clearStage();
   this.stage.innerHTML =
     '<div class="card" style="position:relative"><h1>TechYzer</h1>' +
@@ -175,10 +189,21 @@ PlaylistPlayer.prototype.playCurrent = function () {
   if (this.timer) { clearTimeout(this.timer); this.timer = null; }
   if (!this.items.length) { this.idle(); return; }
 
+  if (this.lastItem) {
+    if (this.onPlayEvent && !this.wallFollower) {
+      this.onPlayEvent('play_end', this.lastItem, true);
+    }
+    this.lastItem = null;
+  }
+
   this.itemStartedAt = Date.now();   // wall position fallback for non-video items
   this.currentVideoEl = null;        // set by renderVideo when applicable
 
   var item = this.items[this.index];
+  if (this.onPlayEvent && !this.wallFollower) {
+    this.onPlayEvent('play_start', item);
+  }
+  this.lastItem = item;
   // Scheduled playlists cycle even with one active item so windows re-evaluate.
   // A wall FOLLOWER also behaves "single": it holds the leader's current item
   // (looping, no auto-advance) and only switches when wall:sync says the index moved.

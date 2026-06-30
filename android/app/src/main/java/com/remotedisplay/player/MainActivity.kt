@@ -66,6 +66,8 @@ class MainActivity : AppCompatActivity() {
     private var screenshotStreamRunnable: Runnable? = null
     private var playbackStarted = false
 
+    private var lastPlaylistItem: PlaylistItem? = null
+
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as WebSocketService.LocalBinder
@@ -169,9 +171,17 @@ class MainActivity : AppCompatActivity() {
         playlistController = PlaylistController(
             onItemChanged = { item -> item?.let { playItem(it) } },
             // #74/#75: clear the last frame when going idle (else a now-filtered item lingers on screen)
-            onPlaylistEmpty = { if (::mediaPlayer.isInitialized) mediaPlayer.stop(); showStatus(getString(R.string.waiting_for_content)) },
+            onPlaylistEmpty = { 
+                if (::mediaPlayer.isInitialized) mediaPlayer.stop()
+                endCurrentPlayLog(completed = false)
+                showStatus(getString(R.string.waiting_for_content)) 
+            },
             onRequestRefresh = { wsService?.requestPlaylistRefresh() },
-            onNothingScheduled = { if (::mediaPlayer.isInitialized) mediaPlayer.stop(); showStatus(getString(R.string.nothing_scheduled)) }
+            onNothingScheduled = { 
+                if (::mediaPlayer.isInitialized) mediaPlayer.stop()
+                endCurrentPlayLog(completed = false)
+                showStatus(getString(R.string.nothing_scheduled)) 
+            }
         )
 
         // Setup media player
@@ -649,6 +659,20 @@ class MainActivity : AppCompatActivity() {
         hideStatus()
         com.remotedisplay.player.util.DebugLog.i("Player", "playItem: ${item.filename} mime=${item.mimeType} widget=${item.widgetId ?: "-"} zone=fullscreen")
 
+        // End the previous play log
+        endCurrentPlayLog(completed = true)
+
+        // Start the new play log if leader/solo
+        if (wallController.isLeader()) {
+            wsService?.sendPlayEvent(
+                event = "play_start",
+                contentId = item.contentId,
+                contentName = item.filename,
+                durationSec = item.durationSec
+            )
+            lastPlaylistItem = item
+        }
+
         // Widget content - render fullscreen in a WebView (single-zone / fullscreen
         // layouts; multi-zone widgets go through ZoneManager). Previously unhandled,
         // so widgets were blank/broken in default-fullscreen and the fullscreen template.
@@ -711,6 +735,19 @@ class MainActivity : AppCompatActivity() {
 
         // Report playback state
         wsService?.sendPlaybackState(item.contentId, 0f)
+    }
+
+    private fun endCurrentPlayLog(completed: Boolean) {
+        lastPlaylistItem?.let { prev ->
+            if (wallController.isActive && !wallController.isLeader()) return
+            wsService?.sendPlayEvent(
+                event = "play_end",
+                contentId = prev.contentId,
+                contentName = prev.filename,
+                completed = completed
+            )
+        }
+        lastPlaylistItem = null
     }
 
     private fun showStatus(message: String) {
@@ -811,6 +848,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        endCurrentPlayLog(completed = false)
         remoteStreaming = false
         zoneManager?.cleanup()
         if (::pipOverlay.isInitialized) pipOverlay.clear(null) // #109: tear down overlay WebView

@@ -15,7 +15,7 @@
   // packaged config.xml via the Tizen application API; fall back to a constant that
   // build-wgt.sh stamps from config.xml's version="" so the dashboard always shows the
   // version that is actually installed (never the old hardcoded '1.0.0').
-  var APP_VERSION_FALLBACK = '1.9.1'; // st:app-version — stamped by build-wgt.sh
+  var APP_VERSION_FALLBACK = '1.9.2'; // st:app-version — stamped by build-wgt.sh
   var APP_VERSION = (function () {
     try {
       var v = tizen.application.getCurrentApplication().appInfo.version;
@@ -363,6 +363,21 @@
 
   // ---- playback ----
   var player = new PlaylistPlayer(elStage, function () { return serverUrl.replace(/\/+$/, ''); });
+  player.onPlayEvent = function (event, item, completed) {
+    if (!socket || !socket.connected || !deviceId || !authenticated) return;
+    var data = {
+      device_id: deviceId,
+      event: event,
+      content_id: item.content_id || null,
+      content_name: item.filename || 'Unknown'
+    };
+    if (event === 'play_start') {
+      data.duration_sec = item.duration_sec || null;
+    } else if (event === 'play_end') {
+      data.completed = !!completed;
+    }
+    socket.emit('device:play-event', data);
+  };
   // Multi-zone layout renderer (matches the Android player). app.js picks the renderer
   // per playlist-update from payload.layout; the two never run at once.
   var zoneRenderer = new ZoneRenderer(elStage, function () { return serverUrl.replace(/\/+$/, ''); });

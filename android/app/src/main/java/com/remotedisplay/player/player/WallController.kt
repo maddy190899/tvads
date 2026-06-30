@@ -46,6 +46,7 @@ class WallController(
     private var tick: Runnable? = null
 
     val isActive: Boolean get() = config != null
+    fun isLeader(): Boolean = config == null || (config?.isLeader ?: false)
 
     /** Enter/refresh wall mode for the given config (idempotent; handles role flips). */
     fun apply(cfg: WallConfig) {
