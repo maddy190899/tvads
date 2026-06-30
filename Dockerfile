@@ -1,4 +1,4 @@
-﻿# TechYzer server image: serves the dashboard, the web player, and the
+# TechYzer server image: serves the dashboard, the web player, and the
 # device API. All mutable state (db, uploads, jwt secret) lives under /data so it
 # survives container restarts - mount a volume there. A built TechYzer.apk
 # can be mounted at /data/TechYzer.apk to enable OTA APK downloads.
@@ -30,6 +30,7 @@ COPY server/ /app/server/
 COPY --from=builder /app/server/node_modules /app/server/node_modules
 COPY frontend/ /app/frontend/
 COPY VERSION /app/VERSION
+COPY TechYzer.apk* /app/
 # the /openapi.yaml route serves ../docs/openapi.yaml (the spec Redoc on /docs fetches);
 # without this it 404s in the image even though it serves fine from a dev checkout.
 COPY docs/openapi.yaml /app/docs/openapi.yaml

@@ -27,7 +27,7 @@ server/test
 android
 tizen
 video
-*.apk
+# *.apk
 *.wgt
 *.tar.gz
 
