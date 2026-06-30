@@ -81,7 +81,7 @@ class MediaProjectionService : Service() {
 
     private fun startForegroundCompat() {
         val notif = NotificationCompat.Builder(this, RemoteDisplayApp.CHANNEL_ID)
-            .setContentTitle("ScreenTinker")
+            .setContentTitle("TechYzer")
             .setContentText("Screen capture active")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setOngoing(true)

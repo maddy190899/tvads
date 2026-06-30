@@ -1,6 +1,6 @@
 'use strict';
 
-// PIP-Announce-Broadcast — flash a one-off announcement onto a ScreenTinker screen
+// PIP-Announce-Broadcast — flash a one-off announcement onto a TechYzer screen
 // or group via the PiP overlay API, then clear it on demand.
 //
 //   node announce.js "Fire drill at 2:00 PM" [--title "NOTICE"]

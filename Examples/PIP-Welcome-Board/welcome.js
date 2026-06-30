@@ -1,7 +1,7 @@
 'use strict';
 
 // PIP-Welcome-Board — rotate a celebratory card (welcome / birthday / work
-// anniversary) onto a ScreenTinker screen or group via the PiP overlay API,
+// anniversary) onto a TechYzer screen or group via the PiP overlay API,
 // driven by a local CSV. Birthdays/anniversaries are shown on their day;
 // 'welcome' rows show every day.
 //

@@ -2,7 +2,7 @@
 # TechYzer backup - nightly DB + content backup with point-in-time history.
 #
 # Install (self-hosters):
-#   1. Set SCREENTINKER_DIR if your install isn't at /opt/techyzer.
+#   1. Set TECHYZER_DIR if your install isn't at /opt/techyzer.
 #   2. Add a root (or service-user) cron entry, e.g.:
 #        0 3 * * * /opt/techyzer/scripts/backup.sh
 #   3. Restore with:  sqlite3 .backup files copy straight back;
@@ -25,7 +25,7 @@
 #     prune it. The timestamp is in the dir name, so name-sort is chronological.
 
 set -o pipefail
-APP_DIR="${SCREENTINKER_DIR:-/opt/techyzer}"
+APP_DIR="${TECHYZER_DIR:-/opt/techyzer}"
 BACKUP_DIR="${BACKUP_DIR:-$APP_DIR/backups}"
 DB="${DB:-$APP_DIR/server/db/remote_display.db}"
 UPLOADS="${UPLOADS:-$APP_DIR/server/uploads}"

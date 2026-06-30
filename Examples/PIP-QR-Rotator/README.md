@@ -1,6 +1,6 @@
 # PiP QR Rotator
 
-Rotate **scannable QR codes** through a corner of your ScreenTinker screens via the PiP
+Rotate **scannable QR codes** through a corner of your TechYzer screens via the PiP
 API — Guest Wi-Fi, the lunch menu, a feedback survey, a "scan to download" link, the event
 schedule, a checkout/tip link… anything a phone camera should grab.
 
@@ -21,7 +21,7 @@ qr.js  --(POST /api/pip, type:web)-->  player
 | File | Purpose |
 |------|---------|
 | `qr.js` | Rotates through `config.entries`, pushing each as a PiP overlay. `--clear` removes it. |
-| `qr-overlay.html` / `qr-overlay.js` | The overlay page the player loads in an iframe. **Generates the QR client-side.** Must be served by your ScreenTinker host (same-origin with the player). |
+| `qr-overlay.html` / `qr-overlay.js` | The overlay page the player loads in an iframe. **Generates the QR client-side.** Must be served by your TechYzer host (same-origin with the player). |
 | `config.example.json` | Copy to `config.json` and fill in. |
 | `test.js` | Offline unit test (`npm test`) — pure helpers + the QR encoder's Reed-Solomon core. |
 
@@ -31,7 +31,7 @@ qr.js  --(POST /api/pip, type:web)-->  player
    is fleet-affecting and renders web content, so it requires `full`).
 
 2. **Serve the overlay assets.** Copy `qr-overlay.html` and `qr-overlay.js` into the
-   directory your ScreenTinker server serves at the web root (its `frontend/` dir), so they
+   directory your TechYzer server serves at the web root (its `frontend/` dir), so they
    live at `https://<your-host>/qr-overlay.html`. They **must** be same-origin with the
    player — the server applies a CSP that only allows same-origin scripts, which is exactly
    why the QR is drawn by `qr-overlay.js` (no CDN).
@@ -68,7 +68,7 @@ qr.js  --(POST /api/pip, type:web)-->  player
 
 ## Local quick-start (this repo)
 
-The local ScreenTinker instance serves on `https://localhost:3443/` (self-signed) and the
+The local TechYzer instance serves on `https://localhost:3443/` (self-signed) and the
 registered player is device `DEVICE_OR_GROUP_ID`.
 
 ```bash

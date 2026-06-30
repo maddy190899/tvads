@@ -14,8 +14,8 @@
 set -euo pipefail
 
 # -- Configuration --
-SCREENTINKER_DIR="/opt/techyzer"
-SCREENTINKER_PORT=3001
+TECHYZER_DIR="/opt/techyzer"
+TECHYZER_PORT=3001
 NODE_MAJOR=20
 LOG_FILE="/var/log/techyzer-debian-setup.log"
 
@@ -156,7 +156,7 @@ if [ "$NEED_PLAYER" = true ]; then
     if [ "$MODE" = "player" ]; then
         KIOSK_URL="${SERVER_URL}/player"
     else
-        KIOSK_URL="http://localhost:${SCREENTINKER_PORT}/player"
+        KIOSK_URL="http://localhost:${TECHYZER_PORT}/player"
     fi
 fi
 
@@ -199,21 +199,21 @@ if [ "$NEED_SERVER" = true ]; then
         log "Node.js $(node -v) installed"
     fi
 
-    if [ -d "$SCREENTINKER_DIR/.git" ]; then
-        log "Repo exists at $SCREENTINKER_DIR, pulling latest..."
-        cd "$SCREENTINKER_DIR" && git pull origin main >> "$LOG_FILE" 2>&1
+    if [ -d "$TECHYZER_DIR/.git" ]; then
+        log "Repo exists at $TECHYZER_DIR, pulling latest..."
+        cd "$TECHYZER_DIR" && git pull origin main >> "$LOG_FILE" 2>&1
     else
         log "Cloning TechYzer..."
-        git clone https://github.com/techyzer/techyzer.git "$SCREENTINKER_DIR" >> "$LOG_FILE" 2>&1
+        git clone https://github.com/techyzer/techyzer.git "$TECHYZER_DIR" >> "$LOG_FILE" 2>&1
     fi
 
     log "Installing server dependencies..."
-    cd "$SCREENTINKER_DIR/server"
+    cd "$TECHYZER_DIR/server"
     npm install --production >> "$LOG_FILE" 2>&1
 
-    mkdir -p "$SCREENTINKER_DIR/server/db"
-    mkdir -p "$SCREENTINKER_DIR/server/uploads"
-    chown -R "$RUNTIME_USER":"$RUNTIME_USER" "$SCREENTINKER_DIR"
+    mkdir -p "$TECHYZER_DIR/server/db"
+    mkdir -p "$TECHYZER_DIR/server/uploads"
+    chown -R "$RUNTIME_USER":"$RUNTIME_USER" "$TECHYZER_DIR"
 
     log "Creating techyzer-server service..."
     cat > /etc/systemd/system/techyzer-server.service << SERVICEEOF
@@ -225,7 +225,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=${RUNTIME_USER}
-WorkingDirectory=${SCREENTINKER_DIR}/server
+WorkingDirectory=${TECHYZER_DIR}/server
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=5
@@ -233,7 +233,7 @@ StartLimitBurst=5
 StartLimitIntervalSec=60
 
 Environment=NODE_ENV=production
-Environment=PORT=${SCREENTINKER_PORT}
+Environment=PORT=${TECHYZER_PORT}
 Environment=SELF_HOSTED=true
 Environment=HOST=0.0.0.0
 
@@ -297,7 +297,7 @@ fi
 if echo "\$KIOSK_URL" | grep -q "localhost"; then
     echo "Waiting for TechYzer server..."
     for i in \$(seq 1 60); do
-        if curl -sf "http://localhost:${SCREENTINKER_PORT}/api/status" >/dev/null 2>&1; then
+        if curl -sf "http://localhost:${TECHYZER_PORT}/api/status" >/dev/null 2>&1; then
             echo "Server ready after \${i}x2s"
             break
         fi
@@ -526,11 +526,11 @@ IP=$(hostname -I | awk '{print $1}')
 
 if [ "$MODE" = "both" ]; then
     echo "Mode: Server + Player"
-    echo "Dashboard: http://${IP}:${SCREENTINKER_PORT}"
-    echo "Player:    http://${IP}:${SCREENTINKER_PORT}/player"
+    echo "Dashboard: http://${IP}:${TECHYZER_PORT}"
+    echo "Player:    http://${IP}:${TECHYZER_PORT}/player"
 elif [ "$MODE" = "server" ]; then
     echo "Mode: Server Only"
-    echo "Dashboard: http://${IP}:${SCREENTINKER_PORT}"
+    echo "Dashboard: http://${IP}:${TECHYZER_PORT}"
 else
     echo "Mode: Player Only"
     echo "Server: $SERVER_URL"

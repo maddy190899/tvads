@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets"
-        id="http://screentinker.com/player" version="1.9.2" viewmodes="maximized">
-    <tizen:application id="ScrnTinkr1.ScreenTinker" package="ScrnTinkr1" required_version="2.4"/>
+        id="http://techyzer.in/player" version="1.9.2" viewmodes="maximized">
+    <tizen:application id="TechYzer1.TechYzer" package="TechYzer1" required_version="2.4"/>
     <tizen:profile name="tv"/>
-    <name>ScreenTinker</name>
-    <author email="support@screentinker.net">ScreenTinker</author>
-    <description>ScreenTinker digital signage player</description>
+    <name>TechYzer</name>
+    <author email="support@techyzer.in">TechYzer</author>
+    <description>TechYzer digital signage player</description>
     <icon src="icon.png"/>
     <content src="index.html"/>
 

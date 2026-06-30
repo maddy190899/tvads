@@ -1,6 +1,6 @@
 'use strict';
 
-// Meeting-room "Available / Busy" sign for ScreenTinker, driven by an ICS calendar
+// Meeting-room "Available / Busy" sign for TechYzer, driven by an ICS calendar
 // feed. Polls the calendar and pushes a PiP web overlay showing whether the room is
 // free right now (green) or in a meeting (red), plus the next/current meeting time.
 //

@@ -1,6 +1,6 @@
 'use strict';
 
-// Open-Meteo Air Quality -> ScreenTinker PiP air-quality widget.
+// Open-Meteo Air Quality -> TechYzer PiP air-quality widget.
 //
 // Polls air-quality-api.open-meteo.com (NO API KEY) for the current US AQI plus the
 // component pollutants, and pushes a small persistent web overlay to a screen (or group).

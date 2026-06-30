@@ -8,7 +8,7 @@
 
   "min_severity": "Severe",
   "urgencies": null,
-  "noaa_user_agent": "ScreenTinker-CAP-Alert-Monitor (you@example.com)",
+  "noaa_user_agent": "TechYzer-CAP-Alert-Monitor (you@example.com)",
 
   "screens": [
     { "name": "OKC lobby", "lat": 35.4676, "lon": -97.5164, "device_id": "DEVICE_OR_GROUP_ID" }

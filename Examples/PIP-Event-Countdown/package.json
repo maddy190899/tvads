@@ -1,7 +1,7 @@
 {
   "name": "pip-event-countdown",
   "version": "0.1.0",
-  "description": "Example: push a live, self-clearing countdown overlay to ScreenTinker screens via the PiP API.",
+  "description": "Example: push a live, self-clearing countdown overlay to TechYzer screens via the PiP API.",
   "type": "commonjs",
   "main": "countdown.js",
   "scripts": {

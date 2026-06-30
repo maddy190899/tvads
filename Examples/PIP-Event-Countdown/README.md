@@ -1,6 +1,6 @@
 # PiP Event Countdown
 
-Push a **live, self-clearing countdown overlay** to a ScreenTinker screen (or group) with
+Push a **live, self-clearing countdown overlay** to a TechYzer screen (or group) with
 the PiP API. The overlay ticks down `DD : HH : MM : SS` in real time and — the fun part —
 **removes itself the instant the target time arrives**. There is no clearing poll: the
 script sets the PiP `duration` to "seconds until the target", so the player drops the
@@ -28,7 +28,7 @@ target or title; the player keeps last-show-wins, so the new overlay replaces th
 | File | Purpose |
 |------|---------|
 | `countdown.js` | Computes seconds-to-target and pushes one PiP. `--clear` removes it early. |
-| `countdown-overlay.html` / `countdown-overlay.js` | The overlay page the player loads in an iframe. Must be served by your ScreenTinker host (same-origin with the player). |
+| `countdown-overlay.html` / `countdown-overlay.js` | The overlay page the player loads in an iframe. Must be served by your TechYzer host (same-origin with the player). |
 | `config.example.json` | Copy to `config.json` and fill in. |
 | `test.js` | Offline unit test of the date math (`npm test`). |
 
@@ -38,7 +38,7 @@ target or title; the player keeps last-show-wins, so the new overlay replaces th
    (PiP is fleet-affecting and can render arbitrary web content, so it requires `full`).
 
 2. **Serve the overlay assets.** Copy `countdown-overlay.html` and `countdown-overlay.js`
-   into the directory your ScreenTinker server serves at the web root (the same place
+   into the directory your TechYzer server serves at the web root (the same place
    `index.html` is served from — the `frontend/` dir in this repo). They must be reachable
    at `overlay_base_url`, and **same-origin** with the player so the server's CSP
    (`script-src 'self'`) allows `countdown-overlay.js`. (Inline scripts are blocked by the
@@ -63,7 +63,7 @@ target or title; the player keeps last-show-wins, so the new overlay replaces th
 
 | Key | Meaning |
 |-----|---------|
-| `api_base` | Base URL of your ScreenTinker server, e.g. `https://signage.example.com`. |
+| `api_base` | Base URL of your TechYzer server, e.g. `https://signage.example.com`. |
 | `api_token` | A `full`-scope `st_…` token. |
 | `overlay_base_url` | Public URL of `countdown-overlay.html` (served by your host). |
 | `device_id` | A device **or** group id to show on. |

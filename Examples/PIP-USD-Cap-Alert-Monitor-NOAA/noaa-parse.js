@@ -84,7 +84,7 @@ async function fetchActiveForPoint(lat, lon, userAgent) {
   const url = `https://api.weather.gov/alerts/active?point=${encodeURIComponent(p)}`;
   const res = await fetch(url, {
     headers: {
-      'User-Agent': userAgent || 'ScreenTinker-CAP-Alert-Monitor (set contact in config)',
+      'User-Agent': userAgent || 'TechYzer-CAP-Alert-Monitor (set contact in config)',
       Accept: 'application/geo+json',
     },
   });

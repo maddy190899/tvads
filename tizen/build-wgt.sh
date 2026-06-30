@@ -1,13 +1,13 @@
 #!/bin/bash
-# Build the ScreenTinker Tizen .wgt.
+# Build the TechYzer Tizen .wgt.
 #  - If the Tizen CLI is available, sign with a security profile (arg 1, default
-#    "ScreenTinker") and emit a signed, TV-installable .wgt.
+#    "TechYzer") and emit a signed, TV-installable .wgt.
 #  - Otherwise, emit an UNSIGNED .wgt (plain zip) — fine for inspection / the
 #    URL-Launcher path, but TVs need a signed package.
 # Only the app files are packaged (README/build script/.gitignore are excluded).
 set -e
 cd "$(dirname "$0")"
-OUT="ScreenTinker.wgt"
+OUT="TechYzer.wgt"
 FILES="config.xml index.html icon.png css js"
 
 # Make the Tizen CLI discoverable if installed in the default location.
@@ -28,7 +28,7 @@ if [ -n "$VER" ]; then
 fi
 
 if command -v tizen >/dev/null 2>&1; then
-  PROFILE="${1:-ScreenTinker}"
+  PROFILE="${1:-TechYzer}"
   echo "Tizen CLI found — signing with profile '$PROFILE'…"
   STAGE="$(mktemp -d)"
   cp -r $FILES "$STAGE"/

@@ -1,11 +1,11 @@
 'use strict';
 
-// CAP-AU -> ScreenTinker PiP monitor.
+// CAP-AU -> TechYzer PiP monitor.
 //
 // Polls a CAP-AU feed (default: the NSW RFS majorIncidentsCAP feed), and for each
 // configured screen, pushes a PiP web overlay when a qualifying alert covers that
 // screen's location — then clears it when the alert expires, is cancelled, or drops
-// out of the feed. It talks to the EXISTING ScreenTinker PiP API (POST /api/pip and
+// out of the feed. It talks to the EXISTING TechYzer PiP API (POST /api/pip and
 // POST /api/pip/clear); it adds no server code.
 //
 //   node monitor.js [path/to/config.json]

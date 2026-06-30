@@ -1,6 +1,6 @@
 'use strict';
 
-// QR Rotator -> ScreenTinker PiP. Cycles through a list of {label, data} entries,
+// QR Rotator -> TechYzer PiP. Cycles through a list of {label, data} entries,
 // pushing each as a PiP web overlay that renders the QR code CLIENT-SIDE (the encoder
 // lives in qr-overlay.js — no network, no external libraries, CSP-safe). Every
 // `rotate_interval_sec` it shows the next entry; the player keeps a single overlay slot

@@ -1,6 +1,6 @@
 'use strict';
 
-// Open-Meteo -> ScreenTinker PiP weather widget.
+// Open-Meteo -> TechYzer PiP weather widget.
 //
 // Polls api.open-meteo.com (NO API KEY) for current conditions + today's high/low and
 // pushes a small persistent web overlay to a screen (or group). Re-pushes on each poll;

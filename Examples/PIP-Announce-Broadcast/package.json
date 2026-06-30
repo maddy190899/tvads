@@ -1,7 +1,7 @@
 {
   "name": "pip-announce-broadcast",
   "version": "0.1.0",
-  "description": "Example: flash a one-off announcement onto a ScreenTinker screen or group via the PiP overlay API.",
+  "description": "Example: flash a one-off announcement onto a TechYzer screen or group via the PiP overlay API.",
   "type": "commonjs",
   "main": "announce.js",
   "scripts": {

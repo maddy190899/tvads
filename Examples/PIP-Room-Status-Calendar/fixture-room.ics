@@ -1,6 +1,6 @@
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//ScreenTinker//Room Status Example//EN
+PRODID:-//TechYzer//Room Status Example//EN
 CALSCALE:GREGORIAN
 BEGIN:VEVENT
 UID:standup-0618@example.com

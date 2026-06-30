@@ -1,6 +1,6 @@
 # PIP-Weather-Radar
 
-A TV-news-style **live weather radar** PiP overlay for ScreenTinker — a dark county map
+A TV-news-style **live weather radar** PiP overlay for TechYzer — a dark county map
 with **animated precipitation radar** and **live NWS warning polygons** drawn on top
 (tornado = red, severe thunderstorm = yellow, flash flood = teal, flood = green), exactly
 like a local station's radar.
@@ -62,7 +62,7 @@ needed.
 2. **Copy the overlay + Leaflet into your signage server's frontend dir** (so they're
    served same-origin as the player):
    ```bash
-   cp radar-overlay.html radar-overlay.js leaflet.js leaflet.css /path/to/screentinker/frontend/
+   cp radar-overlay.html radar-overlay.js leaflet.js leaflet.css /path/to/techyzer/frontend/
    ```
 3. **Configure:**
    ```bash

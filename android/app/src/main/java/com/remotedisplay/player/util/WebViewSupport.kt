@@ -28,7 +28,7 @@ object WebViewSupport {
     // youtube.com embedding a youtube.com iframe is rejected as an invalid embed
     // context ("This video is unavailable / Error 152"). A real third-party domain
     // is what legitimate embeds use.
-    const val EMBED_BASE = "https://screentinker.com"
+    const val EMBED_BASE = "https://techyzer.in"
 
     fun configure(webView: WebView, tag: String) {
         webView.settings.apply {

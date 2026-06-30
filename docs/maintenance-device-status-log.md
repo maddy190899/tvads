@@ -29,7 +29,7 @@ manual `VACUUM` in a maintenance window**:
 ```sh
 # stop the server (or do this during a low-traffic window — VACUUM takes a global
 # write lock and rewrites the whole DB file; the app cannot write during it)
-sqlite3 /opt/screentinker/server/db/remote_display.db 'VACUUM;'
+sqlite3 /opt/techyzer/server/db/remote_display.db 'VACUUM;'
 ```
 
 In the reference incident this took the DB from **119 MB → 39 MB**.

@@ -1,7 +1,7 @@
 # PIP-Welcome-Board
 
 Rotate celebratory cards — **welcomes, birthdays, and work anniversaries** — onto a
-ScreenTinker screen (or a whole group) using the PiP overlay API, driven by a simple
+TechYzer screen (or a whole group) using the PiP overlay API, driven by a simple
 local CSV. Great for a lobby, break room, or front-desk display.
 
 - **Birthdays / anniversaries** show only on their day (matched by `MM-DD`).
@@ -37,12 +37,12 @@ See `people.example.csv`.
    server's CSP allows the external script). Copy both files into the server's
    `frontend/` directory:
    ```sh
-   cp welcome-overlay.html welcome-overlay.js /path/to/screentinker/frontend/
+   cp welcome-overlay.html welcome-overlay.js /path/to/techyzer/frontend/
    ```
    They are then served at `https://<your-server>/welcome-overlay.html`.
 
 2. **Configure.** Copy `config.example.json` to `config.json` and fill in:
-   - `api_base` — your ScreenTinker server
+   - `api_base` — your TechYzer server
    - `api_token` — an `st_` API token with the **`full`** scope
    - `overlay_base_url` — the hosted `welcome-overlay.html` URL
    - `device_id` — a device **or** group id

@@ -1,6 +1,6 @@
 # PIP News Ticker
 
-A scrolling RSS/Atom headline ticker pushed to a ScreenTinker screen (or group) via the
+A scrolling RSS/Atom headline ticker pushed to a TechYzer screen (or group) via the
 PiP overlay API. Polls any feed, extracts the latest headlines, and renders a continuous
 right-to-left strip along the bottom of the screen. Keyless and zero-dependency.
 
@@ -31,7 +31,7 @@ you stop the script (Ctrl-C).
    script-src 'self'`, which is why the JS is external rather than inline):
 
    ```sh
-   cp news-overlay.html news-overlay.js /path/to/screentinker/frontend/
+   cp news-overlay.html news-overlay.js /path/to/techyzer/frontend/
    ```
 
    They'll be reachable at `https://<your-server>/news-overlay.html`.
@@ -53,10 +53,10 @@ you stop the script (Ctrl-C).
 
 ## Local quick-start (self-signed dev server)
 
-Against a local ScreenTinker dev instance with a self-signed certificate:
+Against a local TechYzer dev instance with a self-signed certificate:
 
 ```sh
-cp news-overlay.html news-overlay.js /path/to/screentinker/frontend/
+cp news-overlay.html news-overlay.js /path/to/techyzer/frontend/
 
 cat > config.json <<'JSON'
 {

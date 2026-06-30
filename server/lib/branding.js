@@ -8,7 +8,7 @@
 //   1. the current workspace's row        (per-workspace override; unchanged)
 //   2. a custom-domain match              (public/pre-login white-label hosts)
 //   3. the platform-default row           (instance default, #15)
-//   4. hardcoded ScreenTinker fallback
+//   4. hardcoded TechYzer fallback
 //
 // The platform-default row is identified by a FIXED id (not "workspace_id IS
 // NULL"): legacy pre-multitenancy white_labels rows can also have a null

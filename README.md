@@ -369,7 +369,7 @@ retention and an error log. Add a cron entry:
 ```
 
 Override defaults with env vars if your layout differs:
-`SCREENTINKER_DIR` (default `/opt/techyzer`), `BACKUP_DIR`, `DB`, `UPLOADS`,
+`TECHYZER_DIR` (default `/opt/techyzer`), `BACKUP_DIR`, `DB`, `UPLOADS`,
 `DAILY_KEEP` (7), `MONTHLY_KEEP` (12), `DB_KEEP_DAYS` (30). Backups land in
 `$BACKUP_DIR` (`remote_display-<ts>.db`, `content-latest/`, `content-<ts>/`,
 `content-monthly-<YYYYMM>/`) and each run appends to `$BACKUP_DIR/backup.log`.

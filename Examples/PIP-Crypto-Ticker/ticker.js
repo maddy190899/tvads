@@ -1,6 +1,6 @@
 'use strict';
 
-// Crypto price ticker -> ScreenTinker PiP overlay.
+// Crypto price ticker -> TechYzer PiP overlay.
 //
 // Polls CoinGecko's keyless simple/price endpoint and pushes a wide "ticker strip"
 // web overlay to a device or group. Each poll refreshes the same overlay slot

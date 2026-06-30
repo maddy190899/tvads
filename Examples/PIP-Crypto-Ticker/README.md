@@ -1,6 +1,6 @@
 # PiP Crypto Ticker
 
-A live cryptocurrency **price ticker** for ScreenTinker screens. Polls
+A live cryptocurrency **price ticker** for TechYzer screens. Polls
 [CoinGecko](https://www.coingecko.com/en/api)'s keyless `simple/price` endpoint and
 pushes a wide ticker-strip overlay via the **PiP API**. Each poll refreshes the same
 overlay in place; prices update without a flash.
@@ -41,7 +41,7 @@ loads it in an iframe, and the server CSP only allows same-origin scripts). Copy
 two overlay files into the server's static frontend directory:
 
 ```sh
-cp ticker-overlay.html ticker-overlay.js /path/to/screentinker/frontend/
+cp ticker-overlay.html ticker-overlay.js /path/to/techyzer/frontend/
 ```
 
 Then they're reachable at `https://<your-server>/ticker-overlay.html`.
@@ -72,7 +72,7 @@ node ticker.js
 
 ## Local quick-start (this machine)
 
-A local ScreenTinker instance is already running on `https://localhost:3443` with a
+A local TechYzer instance is already running on `https://localhost:3443` with a
 paired web player (device `DEVICE_OR_GROUP_ID`). It uses a self-signed
 cert, so set `NODE_TLS_REJECT_UNAUTHORIZED=0`.
 

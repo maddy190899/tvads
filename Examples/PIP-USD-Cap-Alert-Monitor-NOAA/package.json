@@ -1,7 +1,7 @@
 {
   "name": "cap-alert-monitor-noaa",
   "version": "0.1.0",
-  "description": "Example: monitor a CAP feed (NSW RFS CAP-AU or US NWS / api.weather.gov) and push emergency alerts to ScreenTinker screens via the PiP API.",
+  "description": "Example: monitor a CAP feed (NSW RFS CAP-AU or US NWS / api.weather.gov) and push emergency alerts to TechYzer screens via the PiP API.",
   "type": "commonjs",
   "main": "monitor.js",
   "scripts": {

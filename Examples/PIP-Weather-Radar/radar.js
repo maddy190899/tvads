@@ -105,7 +105,7 @@ if (require.main === module) {
   const OVERLAY_BASE = cfg.overlay_base_url;
   const DEVICE = cfg.device_id;
   const EVENTS = cfg.events || Object.keys(EVENT_COLORS);
-  const UA = cfg.noaa_user_agent || 'ScreenTinker-Weather-Radar (set contact in config)';
+  const UA = cfg.noaa_user_agent || 'TechYzer-Weather-Radar (set contact in config)';
 
   if (!API_BASE || !API_TOKEN || !OVERLAY_BASE || !DEVICE) {
     console.error('config must set api_base, api_token, overlay_base_url, and device_id.');

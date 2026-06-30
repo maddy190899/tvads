@@ -1,13 +1,13 @@
 # PiP Weather Widget
 
-A small, always-on **weather widget** that floats in the corner of a ScreenTinker screen.
+A small, always-on **weather widget** that floats in the corner of a TechYzer screen.
 It polls [Open-Meteo](https://open-meteo.com) (free, **no API key**) for current conditions
 plus today's high/low and pushes a compact web overlay via the **PiP API**. On each poll it
 re-pushes; the player keeps a single overlay slot (last-show-wins), so the widget updates in
 place. It's shown with `duration: 0` (stays until cleared) and clears itself on exit.
 
 ```
-Open-Meteo  ──poll──▶  weather.js  ──POST /api/pip──▶  ScreenTinker  ──▶  screen overlay
+Open-Meteo  ──poll──▶  weather.js  ──POST /api/pip──▶  TechYzer  ──▶  screen overlay
 ```
 
 ## What it shows
@@ -29,7 +29,7 @@ with humidity, wind, and the last-updated time. The card tints blue in daytime, 
 
 Copy `config.example.json` to `config.json` and set:
 
-- `api_base` — your ScreenTinker base URL
+- `api_base` — your TechYzer base URL
 - `api_token` — an `st_` API token with the **`full`** scope (PiP is fleet-affecting)
 - `overlay_base_url` — where `weather-overlay.html` is served (see "Serve the overlay")
 - `device_id` — a device **or** group id
@@ -45,7 +45,7 @@ so **host the overlay on the same origin as the player**. Copy both files into t
 server's static frontend directory (the one served at `/`), e.g.:
 
 ```bash
-cp weather-overlay.html weather-overlay.js /path/to/screentinker/frontend/
+cp weather-overlay.html weather-overlay.js /path/to/techyzer/frontend/
 # then overlay_base_url = https://<your-server>/weather-overlay.html
 ```
 

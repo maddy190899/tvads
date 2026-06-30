@@ -254,12 +254,12 @@ export async function render(container) {
       let data;
       if (isZip) {
         // For ZIP, show basic info and skip preview parsing
-        data = { format: 'screentinker-export-v1', _isZip: true };
+        data = { format: 'techyzer-export-v1', _isZip: true };
         statusEl.innerHTML = `${t('settings.import.zip_detected', { name: esc(file.name), size: (file.size / 1048576).toFixed(1) })}<br><br><button class="btn btn-primary btn-sm" id="confirmImportBtn">${t('settings.import.confirm')}</button> <button class="btn btn-secondary btn-sm" id="cancelImportBtn">${t('common.cancel')}</button>`;
       } else {
         const text = await file.text();
         data = JSON.parse(text);
-        if (!data.format || !data.format.startsWith('screentinker-export')) {
+        if (!data.format || !data.format.startsWith('techyzer-export')) {
           statusEl.style.color = 'var(--danger)';
           statusEl.textContent = t('settings.import.invalid_file');
           return;

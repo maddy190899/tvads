@@ -1,7 +1,7 @@
 'use strict';
 
 // Event-driven PiP: an inbound webhook receiver. Instead of polling a feed, it waits for
-// your monitoring stack to PUSH it incidents, then shows / clears a ScreenTinker PiP overlay
+// your monitoring stack to PUSH it incidents, then shows / clears a TechYzer PiP overlay
 // in real time:
 //   - status "firing"   -> POST /api/pip   (red overlay, kept until cleared)
 //   - status "resolved" -> POST /api/pip/clear

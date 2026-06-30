@@ -18,8 +18,8 @@
 set -euo pipefail
 
 # -- Configuration --
-SCREENTINKER_DIR="/opt/techyzer"
-SCREENTINKER_PORT=3001
+TECHYZER_DIR="/opt/techyzer"
+TECHYZER_PORT=3001
 NODE_MAJOR=20
 LOG_FILE="/var/log/techyzer-setup.log"
 
@@ -105,7 +105,7 @@ if [ "$PLAYER_ONLY" = true ]; then
     KIOSK_URL="${SERVER_URL}/player"
     log "Player-only mode: $SERVER_URL"
 else
-    KIOSK_URL="http://localhost:${SCREENTINKER_PORT}/player"
+    KIOSK_URL="http://localhost:${TECHYZER_PORT}/player"
     log "All-in-One mode: server + player"
 fi
 
@@ -160,21 +160,21 @@ fi
 # 3. Clone / update TechYzer (all-in-one only)
 # ============================================================
 if [ "$PLAYER_ONLY" = false ]; then
-    if [ -d "$SCREENTINKER_DIR/.git" ]; then
-        log "Repo exists at $SCREENTINKER_DIR, pulling latest..."
-        cd "$SCREENTINKER_DIR" && git pull origin main >> "$LOG_FILE" 2>&1
+    if [ -d "$TECHYZER_DIR/.git" ]; then
+        log "Repo exists at $TECHYZER_DIR, pulling latest..."
+        cd "$TECHYZER_DIR" && git pull origin main >> "$LOG_FILE" 2>&1
     else
         log "Cloning TechYzer..."
-        git clone https://github.com/techyzer/techyzer.git "$SCREENTINKER_DIR" >> "$LOG_FILE" 2>&1
+        git clone https://github.com/techyzer/techyzer.git "$TECHYZER_DIR" >> "$LOG_FILE" 2>&1
     fi
 
     log "Installing Node.js dependencies..."
-    cd "$SCREENTINKER_DIR/server"
+    cd "$TECHYZER_DIR/server"
     npm install --production >> "$LOG_FILE" 2>&1
 
     # Data directories
-    mkdir -p "$SCREENTINKER_DIR/server/db"
-    mkdir -p "$SCREENTINKER_DIR/server/uploads"
+    mkdir -p "$TECHYZER_DIR/server/db"
+    mkdir -p "$TECHYZER_DIR/server/uploads"
 fi
 
 # Determine the runtime user
@@ -183,7 +183,7 @@ PI_HOME=$(eval echo "~$PI_USER")
 
 # Set ownership (all-in-one only)
 if [ "$PLAYER_ONLY" = false ]; then
-    chown -R "$PI_USER":"$PI_USER" "$SCREENTINKER_DIR"
+    chown -R "$PI_USER":"$PI_USER" "$TECHYZER_DIR"
 fi
 
 # ============================================================
@@ -200,7 +200,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=${PI_USER}
-WorkingDirectory=${SCREENTINKER_DIR}/server
+WorkingDirectory=${TECHYZER_DIR}/server
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=5
@@ -208,7 +208,7 @@ StartLimitBurst=5
 StartLimitIntervalSec=60
 
 Environment=NODE_ENV=production
-Environment=PORT=${SCREENTINKER_PORT}
+Environment=PORT=${TECHYZER_PORT}
 Environment=SELF_HOSTED=true
 Environment=HOST=0.0.0.0
 
@@ -280,7 +280,7 @@ fi
 if echo "\$KIOSK_URL" | grep -q "localhost"; then
     echo "Waiting for TechYzer server..."
     for i in \$(seq 1 30); do
-        if curl -sf "http://localhost:${SCREENTINKER_PORT}/api/status" >/dev/null 2>&1; then
+        if curl -sf "http://localhost:${TECHYZER_PORT}/api/status" >/dev/null 2>&1; then
             echo "Server ready"
             break
         fi
@@ -614,13 +614,13 @@ if [ "$PLAYER_ONLY" = false ]; then
     echo "Mode: All-in-One (server + player)"
     echo ""
     echo "After reboot this Pi will:"
-    echo "  - Start the TechYzer server on port $SCREENTINKER_PORT"
+    echo "  - Start the TechYzer server on port $TECHYZER_PORT"
     echo "  - Display the player fullscreen on the connected screen"
     echo ""
     echo "First steps:"
     echo "  1. Reboot:  sudo reboot"
-    echo "  2. From your phone, go to http://${IP}:${SCREENTINKER_PORT}"
-    echo "     (or http://$(hostname).local:${SCREENTINKER_PORT})"
+    echo "  2. From your phone, go to http://${IP}:${TECHYZER_PORT}"
+    echo "     (or http://$(hostname).local:${TECHYZER_PORT})"
     echo "  3. Register - first user gets full admin access"
     echo "  4. Add a display and enter the pairing code from the TV"
     echo "  5. Upload content and push it to the screen"

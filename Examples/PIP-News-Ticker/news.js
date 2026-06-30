@@ -1,6 +1,6 @@
 'use strict';
 
-// RSS/Atom headline ticker -> ScreenTinker PiP. Polls a feed, extracts headlines,
+// RSS/Atom headline ticker -> TechYzer PiP. Polls a feed, extracts headlines,
 // and pushes a persistent scrolling strip overlay to a device/group. Refreshes the
 // strip on each poll (player single-slot, last-show-wins) and clears on exit.
 //

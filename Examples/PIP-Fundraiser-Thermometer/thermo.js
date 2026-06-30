@@ -1,6 +1,6 @@
 'use strict';
 
-// Fundraiser "thermometer" -> ScreenTinker PiP overlay.
+// Fundraiser "thermometer" -> TechYzer PiP overlay.
 //
 // Reads a tiny JSON progress doc ({ campaign, raised, goal, currency }) from a local
 // file or a URL, computes the percentage, and pushes a persistent web overlay showing

@@ -1,7 +1,7 @@
 # PiP Incident Webhook
 
 An **event-driven** PiP example: a tiny webhook receiver that turns your monitoring
-stack's alerts into a floating ScreenTinker overlay — perfect for an engineering wall
+stack's alerts into a floating TechYzer overlay — perfect for an engineering wall
 TV or NOC screen.
 
 - alert **firing**  → red overlay appears (kept until cleared)

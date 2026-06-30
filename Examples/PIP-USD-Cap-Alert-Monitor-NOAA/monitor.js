@@ -1,6 +1,6 @@
 'use strict';
 
-// CAP -> ScreenTinker PiP monitor. Supports two sources via config.source:
+// CAP -> TechYzer PiP monitor. Supports two sources via config.source:
 //   "capau" (default) - NSW RFS EDXL/CAP-AU feed, client-side polygon geofence, gate on AlertLevel.
 //   "noaa"            - api.weather.gov, server-side ?point= geofence, gate on real CAP severity.
 //

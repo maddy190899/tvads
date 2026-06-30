@@ -1,7 +1,7 @@
 {
   "name": "pip-news-ticker",
   "version": "0.1.0",
-  "description": "Example: scroll RSS/Atom headlines across a ScreenTinker screen via the PiP API.",
+  "description": "Example: scroll RSS/Atom headlines across a TechYzer screen via the PiP API.",
   "type": "commonjs",
   "main": "news.js",
   "scripts": {

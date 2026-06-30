@@ -1,6 +1,6 @@
 # Room Status sign (calendar-driven Available / Busy)
 
-Turns a ScreenTinker display into a meeting-room sign. It polls an **ICS calendar
+Turns a TechYzer display into a meeting-room sign. It polls an **ICS calendar
 feed** and pushes a [PiP](../../docs) web overlay that shows **AVAILABLE** (green) or
 **BUSY** (red) plus the current/next meeting time. Re-pushed every poll so the state
 stays fresh; cleared when you stop the script.
@@ -51,7 +51,7 @@ Stop with Ctrl-C — it clears the overlay on the way out.
 
 ### Local quick-start (self-signed dev server)
 
-For a local ScreenTinker instance on `https://localhost:3443` with a self-signed cert:
+For a local TechYzer instance on `https://localhost:3443` with a self-signed cert:
 
 ```json
 {
@@ -89,7 +89,7 @@ You can also drive the overlay against the fixture by setting `ics_file` (instea
 | key | meaning |
 | --- | --- |
 | `room_name` | label shown on the overlay |
-| `api_base` | ScreenTinker server base URL |
+| `api_base` | TechYzer server base URL |
 | `api_token` | `st_` API token with the **full** scope |
 | `overlay_base_url` | URL where `room-overlay.html` is served (same-origin with the player) |
 | `device_id` | target device **or** group id |

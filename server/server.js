@@ -126,15 +126,15 @@ app.use((req, res, next) => {
 });
 // CORS policy.
 // - SELF_HOSTED=true: allow all origins (operator controls their own deployment).
-// - production:       allowlist screentinker.com (+ subdomains) and localhost dev.
+// - production:       allowlist techyzer.in (+ subdomains) and localhost dev.
 // - development:      open (default).
 // Auth is JWT in Authorization header — credentials:true is kept for any cookie-based
 // future flows but the JWT stays in localStorage and is sent via fetch() explicitly,
 // so an attacker origin can't ride a session.
 const isProd = process.env.NODE_ENV === 'production';
 const allowedHostsProd = [
-  'screentinker.com',
-  'www.screentinker.com',
+  'techyzer.in',
+  'www.techyzer.in',
   'localhost',
   '127.0.0.1',
 ];
@@ -177,7 +177,7 @@ app.get('/', (req, res) => {
 
 // Dashboard app. Inject the resolved instance / custom-domain branding into the
 // shell as a <meta> (#76) so brand-prime can apply it before first paint when the
-// per-workspace brand is not cached yet - no ScreenTinker flash on a never-visited
+// per-workspace brand is not cached yet - no TechYzer flash on a never-visited
 // org. CSP blocks inline <script>, so the brand rides in a <meta> that brand-prime
 // reads. Falls back to a plain send of the shell if anything goes wrong.
 app.get('/app', (req, res) => {
@@ -358,7 +358,7 @@ app.use('/api/player-debug', require('./routes/player-debug'));
 
 // Public branding resolver (#15). Pre-login / pre-workspace contexts (the login
 // page especially) need branding without a token. Resolves custom-domain match
-// -> platform default -> hardcoded ScreenTinker. Domain comes from ?domain= or
+// -> platform default -> hardcoded TechYzer. Domain comes from ?domain= or
 // the request hostname (trust-proxy resolves the forwarded Host behind CF/Nginx).
 app.get('/api/branding', (req, res) => {
   const { db } = require('./db/database');
@@ -705,10 +705,10 @@ app.post('/api/provision/pair', requireAuth, resolveTenancy, checkDeviceLimit, (
 });
 
 // Resolve the OTA APK. A copy under the data dir (DATA_DIR) wins, so a container
-// operator can mount one at /data/ScreenTinker.apk; otherwise the legacy in-repo
+// operator can mount one at /data/TechYzer.apk; otherwise the legacy in-repo
 // root path (unchanged when DATA_DIR is unset). Returns null if neither exists.
 function resolveApkPath() {
-  for (const p of [path.join(config.dataDir, 'ScreenTinker.apk'), path.join(__dirname, '..', 'ScreenTinker.apk')]) {
+  for (const p of [path.join(config.dataDir, 'TechYzer.apk'), path.join(__dirname, '..', 'TechYzer.apk')]) {
     if (fs.existsSync(p)) return p;
   }
   return null;
@@ -731,12 +731,12 @@ app.get('/download/apk', (req, res) => {
       console.log(`[ota] APK served to ${ip} (${fs.statSync(apkPath).size} bytes)`);
     }
     res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-    res.setHeader('Content-Disposition', 'attachment; filename="ScreenTinker.apk"');
+    res.setHeader('Content-Disposition', 'attachment; filename="TechYzer.apk"');
     res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(apkPath);
   } else {
     console.warn(`[ota] APK download requested by ${getClientIp(req)} but no APK is available (404)`);
-    res.status(404).send(`<!DOCTYPE html><html><head><title>APK Not Found</title><style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#0f172a;color:#e2e8f0}div{text-align:center;max-width:500px;padding:24px}h1{color:#f87171;font-size:24px}code{background:#1e293b;padding:2px 8px;border-radius:4px;font-size:14px}p{line-height:1.6;color:#94a3b8}</style></head><body><div><h1>APK Not Available</h1><p>The Android APK has not been compiled yet. To build it from source:</p><p><code>cd android</code><br><code>./gradlew assembleDebug</code><br><code>cp app/build/outputs/apk/debug/app-debug.apk ../ScreenTinker.apk</code></p><p>See the <a href="/" style="color:#3b82f6">README</a> for full build instructions.</p><p>In Docker, mount a built APK at <code>/data/ScreenTinker.apk</code> (the data dir).</p><p>Alternatively, use the <a href="/player" style="color:#3b82f6">web player</a> in any browser.</p></div></body></html>`);
+    res.status(404).send(`<!DOCTYPE html><html><head><title>APK Not Found</title><style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#0f172a;color:#e2e8f0}div{text-align:center;max-width:500px;padding:24px}h1{color:#f87171;font-size:24px}code{background:#1e293b;padding:2px 8px;border-radius:4px;font-size:14px}p{line-height:1.6;color:#94a3b8}</style></head><body><div><h1>APK Not Available</h1><p>The Android APK has not been compiled yet. To build it from source:</p><p><code>cd android</code><br><code>./gradlew assembleDebug</code><br><code>cp app/build/outputs/apk/debug/app-debug.apk ../TechYzer.apk</code></p><p>See the <a href="/" style="color:#3b82f6">README</a> for full build instructions.</p><p>In Docker, mount a built APK at <code>/data/TechYzer.apk</code> (the data dir).</p><p>Alternatively, use the <a href="/player" style="color:#3b82f6">web player</a> in any browser.</p></div></body></html>`);
   }
 });
 

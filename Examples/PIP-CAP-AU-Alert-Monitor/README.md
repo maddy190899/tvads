@@ -1,10 +1,10 @@
-# CAP-AU → ScreenTinker PiP alert monitor (example)
+# CAP-AU → TechYzer PiP alert monitor (example)
 
 Watches a CAP-AU emergency feed (default: the **NSW RFS `majorIncidentsCAP`** feed) and,
 when a qualifying alert covers a screen's location, pushes a **PiP web overlay** to that
 screen — then clears it when the alert expires, is cancelled, or leaves the feed.
 
-It uses the **existing** ScreenTinker PiP API (`POST /api/pip`, `POST /api/pip/clear`).
+It uses the **existing** TechYzer PiP API (`POST /api/pip`, `POST /api/pip/clear`).
 No server changes required.
 
 ## How it works
@@ -37,11 +37,11 @@ cp config.example.json config.json   # then edit it
 
 In `config.json`:
 
-- `api_base` — your ScreenTinker server URL.
+- `api_base` — your TechYzer server URL.
 - `api_token` — an **`st_` API token with the `full` scope** (PiP is fleet-affecting and
   full-trust, so the route requires it). Create one in the dashboard's API-token section.
 - `overlay_base_url` — where `alert-overlay.html` is hosted, **reachable by the player**
-  (the player fetches the overlay URL directly). Drop the file on the ScreenTinker host
+  (the player fetches the overlay URL directly). Drop the file on the TechYzer host
   or any static host.
 - `screens` — each screen's `lat`/`lon` (its physical location, used for the geofence)
   and the `device_id` (a device **or** group id) to push the overlay to.

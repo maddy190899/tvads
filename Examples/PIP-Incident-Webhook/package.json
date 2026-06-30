@@ -1,7 +1,7 @@
 {
   "name": "pip-incident-webhook",
   "version": "0.1.0",
-  "description": "Example: an inbound webhook receiver (Alertmanager / generic) that pushes a red ScreenTinker PiP overlay on incident firing and clears it on resolve.",
+  "description": "Example: an inbound webhook receiver (Alertmanager / generic) that pushes a red TechYzer PiP overlay on incident firing and clears it on resolve.",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {

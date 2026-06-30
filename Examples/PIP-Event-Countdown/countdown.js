@@ -1,6 +1,6 @@
 'use strict';
 
-// Countdown -> ScreenTinker PiP. Pushes ONE live countdown overlay to a device or
+// Countdown -> TechYzer PiP. Pushes ONE live countdown overlay to a device or
 // group and lets the player auto-clear it the instant the target time arrives, using
 // the PiP `duration` field (duration = seconds-to-target, so no clear poll is needed).
 //

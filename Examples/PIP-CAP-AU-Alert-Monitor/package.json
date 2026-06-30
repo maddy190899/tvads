@@ -1,7 +1,7 @@
 {
   "name": "cap-alert-monitor",
   "version": "0.1.0",
-  "description": "Example: monitor a CAP-AU feed and push emergency alerts to ScreenTinker screens via the PiP API.",
+  "description": "Example: monitor a CAP-AU feed and push emergency alerts to TechYzer screens via the PiP API.",
   "type": "commonjs",
   "main": "monitor.js",
   "scripts": {

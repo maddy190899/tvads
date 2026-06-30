@@ -1,12 +1,12 @@
 # PiP Fundraiser Thermometer
 
-Pushes a **goal-progress "thermometer"** overlay to a ScreenTinker screen (or group) via
+Pushes a **goal-progress "thermometer"** overlay to a TechYzer screen (or group) via
 the PiP API. Reads a tiny JSON progress doc, computes the percentage, and shows a filling
 bar with the amount raised, the goal, and the percent. It re-pushes on every poll so the
 bar updates in place, and clears the overlay when you stop it.
 
 ```
-progress.json ──poll──▶ thermo.js ──POST /api/pip──▶ ScreenTinker ──▶ screen
+progress.json ──poll──▶ thermo.js ──POST /api/pip──▶ TechYzer ──▶ screen
 {raised,goal}                (web overlay, duration 0 = persistent)
 ```
 
@@ -30,12 +30,12 @@ Anything else renders as `CODE 1,234`.
 
 ## Setup
 
-1. **Host the overlay page.** Copy both overlay files into the ScreenTinker server's
+1. **Host the overlay page.** Copy both overlay files into the TechYzer server's
    frontend directory so they're served same-origin (the server's CSP only allows the
    external `<script src>` when it's same-origin):
 
    ```
-   cp thermo-overlay.html thermo-overlay.js  /path/to/screentinker/frontend/
+   cp thermo-overlay.html thermo-overlay.js  /path/to/techyzer/frontend/
    ```
 
    They'll be served at `https://<your-server>/thermo-overlay.html`.
@@ -62,7 +62,7 @@ Anything else renders as `CODE 1,234`.
 
 ## Local quick-start (this repo's dev server)
 
-The local ScreenTinker dev instance serves on `https://localhost:3443` with a self-signed
+The local TechYzer dev instance serves on `https://localhost:3443` with a self-signed
 cert, so prefix commands with `NODE_TLS_REJECT_UNAUTHORIZED=0`:
 
 ```bash

@@ -67,7 +67,7 @@ PlaylistPlayer.prototype.clearStage = function () {
 PlaylistPlayer.prototype.idle = function () {
   this.clearStage();
   this.stage.innerHTML =
-    '<div class="card" style="position:relative"><h1>ScreenTinker</h1>' +
+    '<div class="card" style="position:relative"><h1>TechYzer</h1>' +
     '<p class="sub">' + tzt('no_content') + '</p></div>';
 };
 
@@ -165,7 +165,7 @@ PlaylistPlayer.prototype.nothingScheduled = function () {
   if (this.timer) { clearTimeout(this.timer); this.timer = null; }
   this.clearStage();
   this.stage.innerHTML =
-    '<div class="card" style="position:relative"><h1>ScreenTinker</h1>' +
+    '<div class="card" style="position:relative"><h1>TechYzer</h1>' +
     '<p class="sub">' + tzt('nothing_scheduled') + '</p></div>';
   var self = this;
   this.timer = setTimeout(function () { self.startPlayback(); }, 30000);

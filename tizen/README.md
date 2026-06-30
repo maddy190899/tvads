@@ -1,6 +1,6 @@
-# ScreenTinker — Tizen TV Player (`.wgt`)
+# TechYzer — Tizen TV Player (`.wgt`)
 
-A Samsung **Tizen TV / signage** web port of the ScreenTinker player. It speaks the
+A Samsung **Tizen TV / signage** web port of the TechYzer player. It speaks the
 **exact same `/device` socket.io protocol** as the Android player, so a Tizen
 display pairs and plays from the same dashboard with no server changes.
 
@@ -40,7 +40,7 @@ build-wgt.sh        package (signed if Tizen CLI present, else unsigned)
 
 ## Build
 ```bash
-./build-wgt.sh            # -> ScreenTinker.wgt
+./build-wgt.sh            # -> TechYzer.wgt
 ```
 Without the Tizen CLI this is an **unsigned** `.wgt`.
 
@@ -61,7 +61,7 @@ and point the URL Launcher at `…/index.html` for the Tizen-specific build.)
 
 ### B) Signed `.wgt` (installed app)
 A signing profile is already set up on the build box (Tizen Studio CLI 6.1):
-- **Profile `ScreenTinker`** = a self-signed **author** cert
+- **Profile `TechYzer`** = a self-signed **author** cert
   (`~/tizen-studio-data/keystore/author/st_author.p12`) + the default Tizen
   **distributor** cert. `./build-wgt.sh` auto-detects the CLI and signs with it,
   producing a `.wgt` with `author-signature.xml` + `signature1.xml`.
@@ -72,14 +72,14 @@ A signing profile is already set up on the build box (Tizen Studio CLI 6.1):
 Install onto a dev-mode TV:
 ```bash
 sdb connect <tv-ip>
-tizen install -n ScreenTinker.wgt -t <tv-device>
+tizen install -n TechYzer.wgt -t <tv-device>
 ```
 
 **Production / retail (no developer mode):** re-sign with a Samsung **Partner**
 or **Public** distributor certificate from the Tizen **Certificate Manager**
 (free Samsung account; distributor cert tied to each TV's **DUID**), then
 `./build-wgt.sh <thatProfile>`. The self-signed author cert is not committed (it
-lives in `~/tizen-studio-data`, password `screentinker`).
+lives in `~/tizen-studio-data`, password `techyzer`).
 
 ## Validated (2026-06-09)
 - **Protocol**: headless test against the live server passed end-to-end —
@@ -135,7 +135,7 @@ the panel:
 - **URL Launcher path (A):** set the URL Launcher as the boot app (it relaunches on
   power-up automatically) — the recommended signage setup.
 - **Signed-app path (B):** use the TV's **kiosk / auto-start app** setting (B2B/SSSP
-  firmware) to launch ScreenTinker on boot; on dev-mode consumer TVs there's no
+  firmware) to launch TechYzer on boot; on dev-mode consumer TVs there's no
   guaranteed boot-launch, so the URL Launcher path is preferred for unattended screens.
 
 ## Version reporting (#119)

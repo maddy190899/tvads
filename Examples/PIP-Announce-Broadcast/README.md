@@ -1,6 +1,6 @@
 # PiP Announce / Broadcast
 
-Flash a one-off text announcement onto a ScreenTinker screen (or a whole group) using
+Flash a one-off text announcement onto a TechYzer screen (or a whole group) using
 the **PiP overlay API**, then clear it whenever you like. Good for fire drills, "back in
 5 minutes", shift changes, a quick "Welcome, visitors!", or any manual broadcast.
 

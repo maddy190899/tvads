@@ -1,4 +1,4 @@
-# ScreenTinker Multi-Tenancy / Reseller Design (V1)
+# TechYzer Multi-Tenancy / Reseller Design (V1)
 
 Status: design approved 2026-05-11. Implementation begins Phase 1 on approval of this doc.
 
@@ -9,7 +9,7 @@ Today every user is the root of their own data. Teams give shared scope inside o
 V1 adds two layers:
 
 ```
-platform                 (the hosted screentinker.com instance, or one self-hosted install)
+platform                 (the hosted techyzer.in instance, or one self-hosted install)
   organization           (a reseller or a customer paying us; owns a Stripe sub)
     workspace            (a client of the reseller; what was previously a Team)
       device | content | playlist | layout | widget | schedule | video_wall | ...
@@ -155,7 +155,7 @@ Every per-tenant resource gets a `workspace_id`. The legacy `user_id` column sta
 
 ### 3.3.1 Workspace billing metadata (add D)
 
-The `workspaces` table also carries reseller-side annotation columns. These are visible and editable only to `org_owner` and `org_admin`. `workspace_admin` and below cannot see them. They never affect Stripe, never affect device caps, and ScreenTinker never emails the addresses stored in them.
+The `workspaces` table also carries reseller-side annotation columns. These are visible and editable only to `org_owner` and `org_admin`. `workspace_admin` and below cannot see them. They never affect Stripe, never affect device caps, and TechYzer never emails the addresses stored in them.
 
 ```sql
 ALTER TABLE workspaces ADD COLUMN billing_type          TEXT DEFAULT 'client_billable';
@@ -279,8 +279,8 @@ Backfill runs as a one-shot in a transaction inside the migration runner, behind
 
 We do NOT auto-rollback. On failure during Phase 1 testing:
 
-1. Take a pre-migration backup (the migration runner snapshots the SQLite file to `data/screentinker.pre-multitenancy.sqlite` before applying anything).
-2. Manual rollback: `cp data/screentinker.pre-multitenancy.sqlite data/screentinker.sqlite && systemctl restart`.
+1. Take a pre-migration backup (the migration runner snapshots the SQLite file to `data/techyzer.pre-multitenancy.sqlite` before applying anything).
+2. Manual rollback: `cp data/techyzer.pre-multitenancy.sqlite data/techyzer.sqlite && systemctl restart`.
 3. No partial-migration state is allowed: the backfill runs inside `BEGIN TRANSACTION ... COMMIT`. Any error rolls the whole batch.
 
 Phase 1 ships with a `node scripts/rollback-multitenancy.js` that drops the new tables and ALTER columns for completeness. It is NEVER auto-invoked.
@@ -575,7 +575,7 @@ Self-hosted instances may create multiple organizations. The `platform_admin` UI
   - `billing_notes` textarea
   - `billing_contact_email` field
   - `billing_contract_ref` field
-  - Help text: "This information is for your own records. ScreenTinker does not bill or contact clients - that is between you and them."
+  - Help text: "This information is for your own records. TechYzer does not bill or contact clients - that is between you and them."
   - The whole section is gated server-side and hidden client-side from `workspace_admin` and below.
 - Updated pairing modal per section 10 (target workspace banner / selector).
 
@@ -595,9 +595,9 @@ Self-hosted instances may create multiple organizations. The `platform_admin` UI
 
 ## 14. Decisions deferred to V2
 
-- Subdomain-per-workspace (`client.screentinker.com`) and per-workspace custom domain via CNAME. Requires nginx automation + cert lifecycle (likely a sidecar like caddy or acme.sh integration).
+- Subdomain-per-workspace (`client.techyzer.in`) and per-workspace custom domain via CNAME. Requires nginx automation + cert lifecycle (likely a sidecar like caddy or acme.sh integration).
 - Per-workspace device-count caps (allocation). V1 shows the rollup view (add B); allocation UI follows.
-- **Per-client invoicing reports (add D)**: per-workspace soft caps combined with `billing_type` metadata enables a future "invoicing CSV" - V2 could render, for each `client_billable` workspace, a device-month consumption summary the reseller can import into their own invoicing system. Purely a reseller convenience; no money flows through ScreenTinker. Flagged here, deferred.
+- **Per-client invoicing reports (add D)**: per-workspace soft caps combined with `billing_type` metadata enables a future "invoicing CSV" - V2 could render, for each `client_billable` workspace, a device-month consumption summary the reseller can import into their own invoicing system. Purely a reseller convenience; no money flows through TechYzer. Flagged here, deferred.
 - Path-versioned `/api/workspaces/:wid/...` form with 308 redirects from legacy paths.
 - Drop the now-unused `users.plan_id`, `users.stripe_*`, `users.subscription_*` columns. Stay nullable in V1, drop in V2.
 - Drop the `team_id` compatibility column on resource tables.

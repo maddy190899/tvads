@@ -1,6 +1,6 @@
 # Android Player — Troubleshooting & Recovery
 
-Practical runbook for the RemoteDisplay / ScreenTinker Android player
+Practical runbook for the RemoteDisplay / TechYzer Android player
 (package `com.remotedisplay.player`, shown on the device as **RemoteDisplay**).
 
 ---
@@ -27,12 +27,12 @@ Most common causes, in order:
    on a different network now.
 2. **Local dev server is down.** `remotedisplay.service` isn't running.
 3. **No internet route.** The device's Wi-Fi genuinely can't reach the
-   internet (only relevant if it points at `https://screentinker.com`).
+   internet (only relevant if it points at `https://techyzer.in`).
 
 ### Quick triage (no device access needed)
 ```bash
 # Is the intended server even up?
-curl -s -m 8 -o /dev/null -w "%{http_code}\n" https://screentinker.com/   # expect 200
+curl -s -m 8 -o /dev/null -w "%{http_code}\n" https://techyzer.in/   # expect 200
 
 # Local dev server running?
 systemctl is-active remotedisplay.service
@@ -58,9 +58,9 @@ So to change servers you must reset that state. Two ways:
    This wipes the stale server URL and pairing. (Cached content is cleared too;
    it re-downloads after pairing — no harm.)
 2. Reopen **RemoteDisplay** → the setup screen appears.
-3. Enter the server URL, e.g. **`https://screentinker.com`** → tap **Connect**.
+3. Enter the server URL, e.g. **`https://techyzer.in`** → tap **Connect**.
 4. It shows a **6-digit pairing code**.
-5. In the dashboard (e.g. screentinker.com), pair a device with that code.
+5. In the dashboard (e.g. techyzer.in), pair a device with that code.
    The phone flips to "Paired as: …" and starts playing.
 
 > After **Clear data**, the **Accessibility** permission the app uses for
