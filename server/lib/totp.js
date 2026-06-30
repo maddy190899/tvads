@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 // #100: TOTP (RFC 6238) helper. The shared secret is REVERSIBLE (the server must
 // recompute codes), so it's stored via secretbox (AES-256-GCM) - NOT hashed like the

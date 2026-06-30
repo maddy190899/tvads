@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /*
  * Report-only audit: find playlist_items whose zone_id is NOT a zone in the
  * device's ACTIVE layout — i.e. orphaned cross-layout assignments. Un-patched

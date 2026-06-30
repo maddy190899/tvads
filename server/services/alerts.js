@@ -1,4 +1,4 @@
-﻿const { db } = require('../db/database');
+const { db } = require('../db/database');
 const { sendEmail } = require('./email');
 
 // Per-(alert_type, target_id) dedup. In-memory Map; restarts reset it, which

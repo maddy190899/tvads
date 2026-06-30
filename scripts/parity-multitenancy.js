@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 // Phase 1 multitenancy parity check.
 //
 // Compares per-user resource counts between the pre-migration snapshot and

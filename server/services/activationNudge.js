@@ -1,4 +1,4 @@
-﻿// Activation nudge (Slice 3): a once-per-user "checking in" email sent T+3 days
+// Activation nudge (Slice 3): a once-per-user "checking in" email sent T+3 days
 // after signup when the user still has zero paired screens. Daily sweep at a
 // fixed UTC hour. Reuses the single Microsoft Graph transport (./email).
 //

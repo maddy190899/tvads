@@ -1,4 +1,4 @@
-﻿// One-time signup emails (Slice 1):
+// One-time signup emails (Slice 1):
 //   (a) a personal welcome email to the new user, and
 //   (b) an admin notification to Dan so no signup goes unnoticed.
 //

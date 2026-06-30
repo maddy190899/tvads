@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Emergency admin access for self-hosted TechYzer.
  * Run this on the server to get a temporary admin login URL.
