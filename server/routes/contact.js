@@ -73,10 +73,10 @@ Submitted from techyzer.com pricing page
 Source IP: ${req.ip}
 `;
 
-  const result = await sendEmail({ to: 'dan@bytetinker.net', subject, text });
+  const result = await sendEmail({ to: 'support@techyzer.com', subject, text });
   if (!result.sent) {
     console.error(`[contact] email send failed for ${cleanEmail}: reason=${result.reason} error=${result.error || ''}`);
-    return res.status(500).json({ error: 'Could not send your message. Please email dan@bytetinker.net directly.' });
+    return res.status(500).json({ error: 'Could not send your message. Please email support@techyzer.com directly.' });
   }
   console.log(`[contact] enterprise inquiry from ${cleanEmail} (${cleanCompany}) delivered`);
   res.json({ success: true });

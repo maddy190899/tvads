@@ -56,7 +56,7 @@ router.get('/backup', (req, res) => {
   }
 
   const dbPath = require('../config').dbPath;
-  res.download(dbPath, `remotedisplay-backup-${new Date().toISOString().split('T')[0]}.db`);
+  res.download(dbPath, `techyzer-backup-${new Date().toISOString().split('T')[0]}.db`);
 });
 
 // User data export (own data only)

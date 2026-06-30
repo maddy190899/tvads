@@ -1,7 +1,7 @@
 # Android Player — Troubleshooting & Recovery
 
-Practical runbook for the RemoteDisplay / TechYzer Android player
-(package `com.remotedisplay.player`, shown on the device as **RemoteDisplay**).
+Practical runbook for the TechYzer Android player
+(package `com.techyzer.player`, shown on the device as **TechYzer**).
 
 ---
 
@@ -25,17 +25,17 @@ Most common causes, in order:
 1. **Server moved / IP changed.** The device was provisioned against a local
    dev box (`http://192.168.x.x:3000`) and that machine's IP changed or it's
    on a different network now.
-2. **Local dev server is down.** `remotedisplay.service` isn't running.
+2. **Local dev server is down.** `techyzer.service` isn't running.
 3. **No internet route.** The device's Wi-Fi genuinely can't reach the
-   internet (only relevant if it points at `https://techyzer.in`).
+   internet (only relevant if it points at `https://techyzer.com`).
 
 ### Quick triage (no device access needed)
 ```bash
 # Is the intended server even up?
-curl -s -m 8 -o /dev/null -w "%{http_code}\n" https://techyzer.in/   # expect 200
+curl -s -m 8 -o /dev/null -w "%{http_code}\n" https://techyzer.com/   # expect 200
 
 # Local dev server running?
-systemctl is-active remotedisplay.service
+systemctl is-active techyzer.service
 ```
 If the target server is up and on the **same LAN** as the device, the player
 *should* connect once it's pointed there — so the fix is re-pointing the device.
@@ -54,25 +54,25 @@ The app only shows its **setup screen** when it is *not provisioned/paired*
 So to change servers you must reset that state. Two ways:
 
 ### A. On the phone, no tools (most reliable)
-1. **Settings → Apps → RemoteDisplay → Storage → Clear data.**
+1. **Settings → Apps → TechYzer → Storage → Clear data.**
    This wipes the stale server URL and pairing. (Cached content is cleared too;
    it re-downloads after pairing — no harm.)
-2. Reopen **RemoteDisplay** → the setup screen appears.
-3. Enter the server URL, e.g. **`https://techyzer.in`** → tap **Connect**.
+2. Reopen **TechYzer** → the setup screen appears.
+3. Enter the server URL, e.g. **`https://techyzer.com`** → tap **Connect**.
 4. It shows a **6-digit pairing code**.
-5. In the dashboard (e.g. techyzer.in), pair a device with that code.
+5. In the dashboard (e.g. techyzer.com), pair a device with that code.
    The phone flips to "Paired as: …" and starts playing.
 
 > After **Clear data**, the **Accessibility** permission the app uses for
 > remote power/navigation is also reset. Re-enable it if you need remote
-> reboot/screen control: Settings → Accessibility → RemoteDisplay → On.
+> reboot/screen control: Settings → Accessibility → TechYzer → On.
 
 ### B. Via adb (if you have a working connection)
 ```bash
 D=<ip:port>
 # Option 1: reset provisioning the same way "Clear data" does
-adb -s $D shell pm clear com.remotedisplay.player
-adb -s $D shell monkey -p com.remotedisplay.player -c android.intent.category.LAUNCHER 1
+adb -s $D shell pm clear com.techyzer.player
+adb -s $D shell monkey -p com.techyzer.player -c android.intent.category.LAUNCHER 1
 
 # Option 2 (inspect first): read the currently-configured server URL
 #   NOTE: release builds are NOT debuggable, so `run-as` returns nothing and
@@ -127,8 +127,8 @@ the pairing port only exists while the pairing dialog is open.
 
 | Thing | Location |
 |---|---|
-| Package id | `com.remotedisplay.player` |
-| Display name | RemoteDisplay |
+| Package id | `com.techyzer.player` |
+| Display name | TechYzer |
 | Server URL entry | `ProvisioningActivity` (`R.id.serverUrlInput`) |
 | Routing to setup | `MainActivity` → `if (!isProvisioned || !isPaired)` |
 | Connection client | `service/WebSocketService.kt` (Socket.IO) |

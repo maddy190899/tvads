@@ -1,4 +1,4 @@
-﻿[Unit]
+[Unit]
 Description=TechYzer Digital Signage Server
 After=network.target
 Wants=network-online.target
@@ -6,14 +6,14 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=owner
-WorkingDirectory=/home/owner/Downloads/remote_display/server
+WorkingDirectory=/home/owner/Downloads/techyzer/server
 ExecStart=/home/owner/.nvm/versions/node/v20.20.1/bin/node server.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=remotedisplay
+SyslogIdentifier=techyzer
 
 [Install]
 WantedBy=multi-user.target

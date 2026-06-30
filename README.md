@@ -1,4 +1,4 @@
-﻿# TechYzer
+# TechYzer
 
 TechYzer is self-hosted digital signage software. Manage screens across multiple locations from one dashboard — built for retail, offices, lobbies, and any environment where you need centralized control over what's displayed on remote screens. self-hosted, multi-tenant, single-developer maintained with direct contact access.
 
@@ -504,15 +504,10 @@ scripts/          Device setup scripts + admin recovery
 
 ## Support
 
-TechYzer is built and maintained by one developer. If the project is useful to you and you want to support continued development:
+For product support, bug reports, or enterprise inquiries, please contact:
 
-- **[Donate via Wise](https://wise.com/pay/business/bytetinkerllc?utm_source=quick_pay)** — directly help fund continued development (ByteTinker LLC)
-- Star the repo on GitHub
-- Open [issues](https://github.com/techyzer/techyzer/issues) with feedback or bug reports
-- Drop into the [Discord](https://discord.gg/utTdsrqq4Z) and say hi
-- Contribute back if you've extended something useful
-
-GitHub Sponsors integration is also planned. Direct contact: [dan@bytetinker.net](mailto:dan@bytetinker.net) or via Discord.
+- Email: [support@techyzer.com](mailto:support@techyzer.com)
+- Discord: Join our [Discord](https://discord.gg/utTdsrqq4Z) community
 
 ## License
 

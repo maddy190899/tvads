@@ -85,7 +85,7 @@ class UpdateChecker(private val context: Context) {
                 }
             }
         }
-        val filter = IntentFilter("com.remotedisplay.player.INSTALL_COMPLETE")
+        val filter = IntentFilter("${context.packageName}.INSTALL_COMPLETE")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
@@ -329,7 +329,7 @@ class UpdateChecker(private val context: Context) {
                 // the broadcast to our own RECEIVER_NOT_EXPORTED receiver.
                 val pendingIntent = android.app.PendingIntent.getBroadcast(
                     context, sessionId,
-                    Intent("com.remotedisplay.player.INSTALL_COMPLETE").setPackage(context.packageName),
+                    Intent("${context.packageName}.INSTALL_COMPLETE").setPackage(context.packageName),
                     android.app.PendingIntent.FLAG_MUTABLE
                 )
                 session.commit(pendingIntent.intentSender)

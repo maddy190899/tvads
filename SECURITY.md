@@ -1,4 +1,4 @@
-﻿# Security Policy
+# Security Policy
 
 Thanks for taking the time to look at TechYzer's security. The project
 is a one-person self-hosted effort, so response times reflect that — but
@@ -16,10 +16,7 @@ unless you have a reason not to.
 
 **Fallback — email:**
 
-`support@bytetinker.net` (the maintainer's consultancy inbox; the domain
-intentionally differs from `techyzer.com` — it's the actively-monitored
-business address rather than a project-domain alias that might not have
-working mail delivery).
+`support@techyzer.com` (the corporate security inbox).
 
 Please include:
 - A description of the issue and its impact

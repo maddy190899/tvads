@@ -71,7 +71,7 @@ class WebSocketService : Service() {
 
         // Keep CPU alive so the WebSocket connection stays alive in background
         val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
-        wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "RemoteDisplay:WebSocket")
+        wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "TechYzer:WebSocket")
         wakeLock?.acquire()
     }
 

@@ -383,7 +383,7 @@
 
   <!-- Enterprise contact form modal. Opened by the Enterprise / Custom card's
        Contact Us button. Submits to POST /api/contact/enterprise which sends
-       the inquiry via Microsoft Graph to dan@bytetinker.net. -->
+       the inquiry via Microsoft Graph to support@techyzer.com. -->
   <div class="modal-overlay" id="contactModal" style="display:none">
     <div class="modal" role="dialog" aria-labelledby="contactModalTitle" aria-modal="true">
       <div class="modal-header">
@@ -652,11 +652,11 @@
         } else {
           const err = await res.json().catch(() => ({}));
           status.className = 'contact-status-error';
-          status.textContent = err.error || "Sorry, something went wrong. Try emailing dan@bytetinker.net directly.";
+          status.textContent = err.error || "Sorry, something went wrong. Try emailing support@techyzer.com directly.";
         }
       } catch (e) {
         status.className = 'contact-status-error';
-        status.textContent = "Network error. Try emailing dan@bytetinker.net directly.";
+        status.textContent = "Network error. Try emailing support@techyzer.com directly.";
       } finally {
         btn.disabled = false;
       }

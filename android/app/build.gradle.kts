@@ -8,7 +8,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.remotedisplay.player"
+        applicationId = "com.techyzer.player"
         minSdk = 24
         targetSdk = 34
         versionCode = 31
@@ -19,7 +19,7 @@ android {
         create("release") {
             storeFile = file("../release-key.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: findProperty("KEYSTORE_PASSWORD") as String? ?: ""
-            keyAlias = System.getenv("KEY_ALIAS") ?: findProperty("KEY_ALIAS") as String? ?: "remotedisplay"
+            keyAlias = System.getenv("KEY_ALIAS") ?: findProperty("KEY_ALIAS") as String? ?: "techyzer"
             keyPassword = System.getenv("KEY_PASSWORD") ?: findProperty("KEY_PASSWORD") as String? ?: ""
             // #81: AGP ignores enableV1Signing at minSdk>=24, so assembleRelease emits a
             // v2-only APK. The v1 (JAR) signature that some MDM-managed signage (MAXHUB)
@@ -109,12 +109,15 @@ tasks.register<Exec>("resignReleaseV1") {
         val buildTools = File(sdkDir, "build-tools").listFiles()
             ?.filter { it.isDirectory }?.maxByOrNull { it.name }
             ?: throw GradleException("#81 resign: no build-tools found under $sdkDir")
+        val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+        val apksignerName = if (isWindows) "apksigner.bat" else "apksigner"
+        val apksignerFile = File(buildTools, apksignerName)
         commandLine(
-            File(buildTools, "apksigner").absolutePath, "sign",
+            apksignerFile.absolutePath, "sign",
             "--ks", file("../release-key.jks").absolutePath,
-            "--ks-key-alias", (System.getenv("KEY_ALIAS") ?: "remotedisplay"),
-            "--ks-pass", "pass:" + (System.getenv("KEYSTORE_PASSWORD") ?: ""),
-            "--key-pass", "pass:" + (System.getenv("KEY_PASSWORD") ?: ""),
+            "--ks-key-alias", (System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as String? ?: "upload"),
+            "--ks-pass", "pass:" + (System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as String? ?: ""),
+            "--key-pass", "pass:" + (System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as String? ?: ""),
             "--v1-signing-enabled", "true",
             "--v2-signing-enabled", "true",
             "--v3-signing-enabled", "true",
