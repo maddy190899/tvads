@@ -9,6 +9,7 @@ const commandQueue = require('../lib/command-queue');
 const reconnectThrottle = require('../lib/reconnect-throttle');
 const contentAckLimiter = require('../lib/content-ack-limiter');
 const statusLogWriter = require('../lib/status-log-writer');
+const { protectSocket } = require('../lib/safe-socket');
 const loopLag = require('../services/loop-lag');
 
 // Debounce window for marking a device offline on socket disconnect. Brief
@@ -278,6 +279,11 @@ module.exports = function setupDeviceSocket(io) {
     let currentDeviceId = null;
     let authenticated = false; // Track whether this socket has been authenticated
 
+    // #146: wrap every handler on THIS socket so a throw disconnects only this device
+    // (logged with its id) instead of crashing the whole server. Backstop to the
+    // per-site try/catch in the handlers below.
+    protectSocket(socket, () => currentDeviceId);
+
     // Device registers with a pairing code (first time) or device_id + device_token (reconnect)
     socket.on('device:register', (data) => {
       const { pairing_code, device_id, device_token, device_info, fingerprint } = data;
@@ -533,21 +539,36 @@ module.exports = function setupDeviceSocket(io) {
         // New device registering with pairing code — generate a device_token
         const id = uuidv4();
         const newToken = generateDeviceToken();
+
+        // #146 scale-hardening: a DB error on this INSERT must reject THIS device's
+        // registration, never throw out of the handler. The likely error is a UNIQUE
+        // pairing_code collision when many devices provision at once (client-supplied
+        // 6-digit codes collide by birthday paradox), but ANY error counts. An
+        // unhandled throw in a socket handler escalates to uncaughtException ->
+        // logFatalAndExit -> the WHOLE server exits and every device drops — one
+        // colliding code crash-looped the fleet in the load test. Catch it, log, and
+        // tell just this device to retry. currentDeviceId/authenticated are set only
+        // AFTER the row exists, so a failed insert leaves no half-authenticated socket.
+        try {
+          db.prepare(`
+            INSERT INTO devices (id, pairing_code, device_token, status, ip_address, android_version, app_version, screen_width, screen_height, render_width, render_height, last_heartbeat)
+            VALUES (?, ?, ?, 'provisioning', ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'))
+          `).run(
+            id, pairing_code, newToken, getClientIp(socket),
+            device_info?.android_version || null,
+            device_info?.app_version || null,
+            device_info?.screen_width || null,
+            device_info?.screen_height || null,
+            device_info?.render_width || null,
+            device_info?.render_height || null
+          );
+        } catch (e) {
+          console.warn(`Provisioning rejected for pairing_code ${pairing_code} from ${getClientIp(socket)}: ${e.message}`);
+          socket.emit('device:auth-error', { error: 'Registration failed, please retry.' });
+          return;
+        }
         currentDeviceId = id;
         authenticated = true;
-
-        db.prepare(`
-          INSERT INTO devices (id, pairing_code, device_token, status, ip_address, android_version, app_version, screen_width, screen_height, render_width, render_height, last_heartbeat)
-          VALUES (?, ?, ?, 'provisioning', ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'))
-        `).run(
-          id, pairing_code, newToken, getClientIp(socket),
-          device_info?.android_version || null,
-          device_info?.app_version || null,
-          device_info?.screen_width || null,
-          device_info?.screen_height || null,
-          device_info?.render_width || null,
-          device_info?.render_height || null
-        );
 
         heartbeat.registerConnection(id, socket.id);
         socket.join(id);
