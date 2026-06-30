@@ -1,4 +1,4 @@
-// Activation nudge (Slice 3): a once-per-user "checking in" email sent T+3 days
+﻿// Activation nudge (Slice 3): a once-per-user "checking in" email sent T+3 days
 // after signup when the user still has zero paired screens. Daily sweep at a
 // fixed UTC hour. Reuses the single Microsoft Graph transport (./email).
 //
@@ -20,10 +20,10 @@ const { sendEmail } = require('./email');
 const NUDGE_HOUR_UTC = 15; // 15:00 UTC daily
 
 const LINKS = {
-  player:     'https://screentinker.com/player/',
-  pi:         'https://screentinker.com/guides/raspberry-pi-digital-signage.html',
-  androidTv:  'https://screentinker.com/guides/digital-signage-android-tv.html',
-  selfHosted: 'https://screentinker.com/guides/self-hosted-digital-signage.html',
+  player:     'https://techyzer.com/player/',
+  pi:         'https://techyzer.com/guides/raspberry-pi-digital-signage.html',
+  androidTv:  'https://techyzer.com/guides/digital-signage-android-tv.html',
+  selfHosted: 'https://techyzer.com/guides/self-hosted-digital-signage.html',
   discord:    'https://discord.gg/utTdsrqq4Z',
 };
 
@@ -36,7 +36,7 @@ function htmlEscape(s) {
 function nudgeText(name) {
   return `Hi ${name},
 
-You signed up for ScreenTinker a few days ago, and I noticed you
+You signed up for TechYzer a few days ago, and I noticed you
 haven't paired a screen yet. No worries at all. I just wanted to
 check in and see if anything's getting in the way.
 
@@ -59,13 +59,13 @@ And the Discord is here if you'd rather ask there:
 And if you'd rather I didn't check in, just say the word.
 
 - Dan
-ScreenTinker`;
+TechYzer`;
 }
 
 function nudgeHtml(name) {
   return `<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.6;color:#222;max-width:560px">
 <p>Hi ${htmlEscape(name)},</p>
-<p>You signed up for ScreenTinker a few days ago, and I noticed you haven't paired a screen yet. No worries at all. I just wanted to check in and see if anything's getting in the way.</p>
+<p>You signed up for TechYzer a few days ago, and I noticed you haven't paired a screen yet. No worries at all. I just wanted to check in and see if anything's getting in the way.</p>
 <p>If you hit a snag, hit reply and tell me what happened. It comes straight to me and I'll help you sort it.</p>
 <p>If you just haven't had a chance yet, the fastest way to start is the web player. Turn any browser into a screen in about a minute:</p>
 <p><a href="${LINKS.player}" style="font-weight:600">Open the web player</a></p>
@@ -77,7 +77,7 @@ function nudgeHtml(name) {
 </ul>
 <p>And the <a href="${LINKS.discord}">Discord is here</a> if you'd rather ask there.</p>
 <p>And if you'd rather I didn't check in, just say the word.</p>
-<p>- Dan<br>ScreenTinker</p>
+<p>- Dan<br>TechYzer</p>
 </div>`;
 }
 
@@ -112,9 +112,9 @@ async function runActivationNudgeSweep() {
     const name = (u.name && u.name.trim()) ? u.name.trim() : u.email.split('@')[0];
     const r = await sendEmail({
       to: u.email,
-      fromName: 'Dan at ScreenTinker',
+      fromName: 'Dan at TechYzer',
       rawSubject: true,
-      subject: "Quick check-in - how's ScreenTinker going?",
+      subject: "Quick check-in - how's TechYzer going?",
       text: nudgeText(name),
       html: nudgeHtml(name),
     });

@@ -1,5 +1,5 @@
-#!/bin/bash
-# ScreenTinker - Debian 13 Setup Script
+﻿#!/bin/bash
+# TechYzer - Debian 13 Setup Script
 #
 # Modes:
 #   - Server + Player (both)
@@ -7,17 +7,17 @@
 #   - Player only
 #
 # Usage:
-#   curl -sSL https://screentinker.com/scripts/debian-13-setup.sh | sudo bash
-#   curl -sSL https://screentinker.com/scripts/debian-13-setup.sh | sudo bash -s -- --server-only
-#   curl -sSL https://screentinker.com/scripts/debian-13-setup.sh | sudo bash -s -- --player-only https://screentinker.com
+#   curl -sSL https://techyzer.com/scripts/debian-13-setup.sh | sudo bash
+#   curl -sSL https://techyzer.com/scripts/debian-13-setup.sh | sudo bash -s -- --server-only
+#   curl -sSL https://techyzer.com/scripts/debian-13-setup.sh | sudo bash -s -- --player-only https://techyzer.com
 
 set -euo pipefail
 
 # -- Configuration --
-SCREENTINKER_DIR="/opt/screentinker"
+SCREENTINKER_DIR="/opt/techyzer"
 SCREENTINKER_PORT=3001
 NODE_MAJOR=20
-LOG_FILE="/var/log/screentinker-debian-setup.log"
+LOG_FILE="/var/log/techyzer-debian-setup.log"
 
 # -- Colors --
 RED='\033[0;31m'
@@ -26,7 +26,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log()  { echo -e "${GREEN}[ScreenTinker]${NC} $1"; }
+log()  { echo -e "${GREEN}[TechYzer]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 err()  { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
@@ -67,7 +67,7 @@ while [[ $# -gt 0 ]]; do
             echo "Examples:"
             echo "  sudo ./debian-13-setup.sh"
             echo "  sudo ./debian-13-setup.sh --server-only"
-            echo "  sudo ./debian-13-setup.sh --player-only https://screentinker.com"
+            echo "  sudo ./debian-13-setup.sh --player-only https://techyzer.com"
             exit 0
             ;;
         http*)
@@ -98,14 +98,14 @@ fi
 if [ "$MODE" = "player" ] && [ -z "$SERVER_URL" ]; then
     echo ""
     echo -e "${BLUE}======================================${NC}"
-    echo -e "${BLUE}   ScreenTinker Debian 13 Setup${NC}"
+    echo -e "${BLUE}   TechYzer Debian 13 Setup${NC}"
     echo -e "${BLUE}======================================${NC}"
     echo ""
-    read -p "Server URL (e.g., https://screentinker.com): " SERVER_URL
+    read -p "Server URL (e.g., https://techyzer.com): " SERVER_URL
 elif [ "$MODE" = "both" ] && [ "$MODE_SET" = false ] && [ -z "$SERVER_URL" ]; then
     echo ""
     echo -e "${BLUE}======================================${NC}"
-    echo -e "${BLUE}   ScreenTinker Debian 13 Setup${NC}"
+    echo -e "${BLUE}   TechYzer Debian 13 Setup${NC}"
     echo -e "${BLUE}======================================${NC}"
     echo ""
     echo "  1) Server + Player (recommended for single-screen host)"
@@ -119,7 +119,7 @@ elif [ "$MODE" = "both" ] && [ "$MODE_SET" = false ] && [ -z "$SERVER_URL" ]; th
             ;;
         3)
             MODE="player"
-            read -p "Server URL (e.g., https://screentinker.com): " SERVER_URL
+            read -p "Server URL (e.g., https://techyzer.com): " SERVER_URL
             ;;
         *)
             MODE="both"
@@ -203,8 +203,8 @@ if [ "$NEED_SERVER" = true ]; then
         log "Repo exists at $SCREENTINKER_DIR, pulling latest..."
         cd "$SCREENTINKER_DIR" && git pull origin main >> "$LOG_FILE" 2>&1
     else
-        log "Cloning ScreenTinker..."
-        git clone https://github.com/screentinker/screentinker.git "$SCREENTINKER_DIR" >> "$LOG_FILE" 2>&1
+        log "Cloning TechYzer..."
+        git clone https://github.com/techyzer/techyzer.git "$SCREENTINKER_DIR" >> "$LOG_FILE" 2>&1
     fi
 
     log "Installing server dependencies..."
@@ -215,10 +215,10 @@ if [ "$NEED_SERVER" = true ]; then
     mkdir -p "$SCREENTINKER_DIR/server/uploads"
     chown -R "$RUNTIME_USER":"$RUNTIME_USER" "$SCREENTINKER_DIR"
 
-    log "Creating screentinker-server service..."
-    cat > /etc/systemd/system/screentinker-server.service << SERVICEEOF
+    log "Creating techyzer-server service..."
+    cat > /etc/systemd/system/techyzer-server.service << SERVICEEOF
 [Unit]
-Description=ScreenTinker Digital Signage Server
+Description=TechYzer Digital Signage Server
 After=network-online.target
 Wants=network-online.target
 
@@ -239,14 +239,14 @@ Environment=HOST=0.0.0.0
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=screentinker-server
+SyslogIdentifier=techyzer-server
 
 [Install]
 WantedBy=multi-user.target
 SERVICEEOF
 
     systemctl daemon-reload
-    systemctl enable screentinker-server.service
+    systemctl enable techyzer-server.service
     log "Server service enabled"
 fi
 
@@ -270,7 +270,7 @@ needs_root_rights=yes
 XWRAPEOF
 
     log "Creating kiosk launcher..."
-    cat > "$RUNTIME_HOME/screentinker-kiosk.sh" << KIOSKEOF
+    cat > "$RUNTIME_HOME/techyzer-kiosk.sh" << KIOSKEOF
 #!/bin/bash
 KIOSK_URL="${KIOSK_URL}"
 
@@ -295,7 +295,7 @@ fi
 
 # Wait for local server if running all-in-one
 if echo "\$KIOSK_URL" | grep -q "localhost"; then
-    echo "Waiting for ScreenTinker server..."
+    echo "Waiting for TechYzer server..."
     for i in \$(seq 1 60); do
         if curl -sf "http://localhost:${SCREENTINKER_PORT}/api/status" >/dev/null 2>&1; then
             echo "Server ready after \${i}x2s"
@@ -342,28 +342,28 @@ exec ${CHROMIUM_BIN} \\
     "\$KIOSK_URL"
 KIOSKEOF
 
-    chmod +x "$RUNTIME_HOME/screentinker-kiosk.sh"
-    chown "$RUNTIME_USER":"$RUNTIME_USER" "$RUNTIME_HOME/screentinker-kiosk.sh"
+    chmod +x "$RUNTIME_HOME/techyzer-kiosk.sh"
+    chown "$RUNTIME_USER":"$RUNTIME_USER" "$RUNTIME_HOME/techyzer-kiosk.sh"
 
     cat > "$RUNTIME_HOME/.xinitrc" << 'XINITEOF'
 #!/bin/bash
-exec ~/screentinker-kiosk.sh
+exec ~/techyzer-kiosk.sh
 XINITEOF
     chmod +x "$RUNTIME_HOME/.xinitrc"
     chown "$RUNTIME_USER":"$RUNTIME_USER" "$RUNTIME_HOME/.xinitrc"
 
     if [ "$NEED_SERVER" = true ]; then
-        KIOSK_AFTER="After=screentinker-server.service"
-        KIOSK_REQ="Requires=screentinker-server.service"
+        KIOSK_AFTER="After=techyzer-server.service"
+        KIOSK_REQ="Requires=techyzer-server.service"
     else
         KIOSK_AFTER="After=network-online.target"
         KIOSK_REQ="Wants=network-online.target"
     fi
 
     log "Creating kiosk service..."
-    cat > /etc/systemd/system/screentinker-kiosk.service << SERVICEEOF
+    cat > /etc/systemd/system/techyzer-kiosk.service << SERVICEEOF
 [Unit]
-Description=ScreenTinker Kiosk Display
+Description=TechYzer Kiosk Display
 ${KIOSK_AFTER}
 ${KIOSK_REQ}
 # Prevent conflicts with getty on tty1
@@ -388,14 +388,14 @@ TTYPath=/dev/tty1
 StandardInput=tty
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=screentinker-kiosk
+SyslogIdentifier=techyzer-kiosk
 
 [Install]
 WantedBy=multi-user.target
 SERVICEEOF
 
     systemctl daemon-reload
-    systemctl enable screentinker-kiosk.service
+    systemctl enable techyzer-kiosk.service
     log "Kiosk service enabled"
 
     log "Configuring auto-login on tty1..."
@@ -414,48 +414,48 @@ fi
 if [ "$NEED_SERVER" = true ]; then
     log "Creating management scripts..."
 
-    cat > /usr/local/bin/screentinker-update << 'UPDATEEOF'
+    cat > /usr/local/bin/techyzer-update << 'UPDATEEOF'
 #!/bin/bash
 echo "Stopping services..."
-sudo systemctl stop screentinker-kiosk.service 2>/dev/null || true
-sudo systemctl stop screentinker-server.service 2>/dev/null || true
+sudo systemctl stop techyzer-kiosk.service 2>/dev/null || true
+sudo systemctl stop techyzer-server.service 2>/dev/null || true
 
 echo "Pulling latest..."
-cd /opt/screentinker && git pull origin main
+cd /opt/techyzer && git pull origin main
 
 echo "Installing dependencies..."
 cd server && npm install --production
 
 echo "Starting services..."
-sudo systemctl start screentinker-server.service
-if systemctl list-unit-files | grep -q '^screentinker-kiosk.service'; then
+sudo systemctl start techyzer-server.service
+if systemctl list-unit-files | grep -q '^techyzer-kiosk.service'; then
   sleep 3
-  sudo systemctl start screentinker-kiosk.service
+  sudo systemctl start techyzer-kiosk.service
 fi
 
 echo ""
-echo "Done! Server: $(systemctl is-active screentinker-server.service)"
-if systemctl list-unit-files | grep -q '^screentinker-kiosk.service'; then
-  echo "      Kiosk:  $(systemctl is-active screentinker-kiosk.service)"
+echo "Done! Server: $(systemctl is-active techyzer-server.service)"
+if systemctl list-unit-files | grep -q '^techyzer-kiosk.service'; then
+  echo "      Kiosk:  $(systemctl is-active techyzer-kiosk.service)"
 fi
 UPDATEEOF
-    chmod +x /usr/local/bin/screentinker-update
+    chmod +x /usr/local/bin/techyzer-update
 
-    cat > /usr/local/bin/screentinker-status << 'STATUSEOF'
+    cat > /usr/local/bin/techyzer-status << 'STATUSEOF'
 #!/bin/bash
 echo ""
-echo "=== ScreenTinker Status ==="
+echo "=== TechYzer Status ==="
 echo ""
 IP=$(hostname -I | awk '{print $1}')
 
-if systemctl is-active screentinker-server.service &>/dev/null; then
-    echo "Server:    RUNNING (PID $(systemctl show screentinker-server.service -p MainPID --value))"
+if systemctl is-active techyzer-server.service &>/dev/null; then
+    echo "Server:    RUNNING (PID $(systemctl show techyzer-server.service -p MainPID --value))"
 else
     echo "Server:    STOPPED"
 fi
 
-if systemctl list-unit-files | grep -q '^screentinker-kiosk.service'; then
-    if systemctl is-active screentinker-kiosk.service &>/dev/null; then
+if systemctl list-unit-files | grep -q '^techyzer-kiosk.service'; then
+    if systemctl is-active techyzer-kiosk.service &>/dev/null; then
         echo "Kiosk:     RUNNING"
     else
         echo "Kiosk:     STOPPED"
@@ -464,7 +464,7 @@ fi
 
 echo ""
 echo "Uptime:    $(uptime -p)"
-echo "Disk:      $(df -h /opt/screentinker 2>/dev/null | tail -1 | awk '{print $3 "/" $2 " (" $5 " used)"}')"
+echo "Disk:      $(df -h /opt/techyzer 2>/dev/null | tail -1 | awk '{print $3 "/" $2 " (" $5 " used)"}')"
 echo "Memory:    $(free -h | awk '/Mem:/ {print $3 " / " $2}')"
 echo ""
 echo "Dashboard: http://${IP}:3001"
@@ -472,18 +472,18 @@ echo "Player:    http://${IP}:3001/player"
 echo "mDNS:      http://$(hostname).local:3001"
 echo ""
 STATUSEOF
-    chmod +x /usr/local/bin/screentinker-status
+    chmod +x /usr/local/bin/techyzer-status
 
-    cat > /usr/local/bin/screentinker-logs << 'LOGSEOF'
+    cat > /usr/local/bin/techyzer-logs << 'LOGSEOF'
 #!/bin/bash
 case "${1:-server}" in
-    server) journalctl -u screentinker-server.service -f --no-hostname ;;
-    kiosk)  journalctl -u screentinker-kiosk.service -f --no-hostname ;;
-    all)    journalctl -u screentinker-server.service -u screentinker-kiosk.service -f --no-hostname ;;
-    *)      echo "Usage: screentinker-logs [server|kiosk|all]" ;;
+    server) journalctl -u techyzer-server.service -f --no-hostname ;;
+    kiosk)  journalctl -u techyzer-kiosk.service -f --no-hostname ;;
+    all)    journalctl -u techyzer-server.service -u techyzer-kiosk.service -f --no-hostname ;;
+    *)      echo "Usage: techyzer-logs [server|kiosk|all]" ;;
 esac
 LOGSEOF
-    chmod +x /usr/local/bin/screentinker-logs
+    chmod +x /usr/local/bin/techyzer-logs
 fi
 
 cat > /etc/motd << 'MOTDEOF'
@@ -497,9 +497,9 @@ cat > /etc/motd << 'MOTDEOF'
  Open-Source Digital Signage for Any Screen
 
  Commands:
-   screentinker-status   Show system info and URLs
-   screentinker-update   Pull latest and restart
-   screentinker-logs     Follow logs (server|kiosk|all)
+   techyzer-status   Show system info and URLs
+   techyzer-update   Pull latest and restart
+   techyzer-logs     Follow logs (server|kiosk|all)
 
 MOTDEOF
 
@@ -518,7 +518,7 @@ fi
 
 echo ""
 echo -e "${GREEN}======================================${NC}"
-echo -e "${GREEN}   ScreenTinker Setup Complete!${NC}"
+echo -e "${GREEN}   TechYzer Setup Complete!${NC}"
 echo -e "${GREEN}======================================${NC}"
 echo ""
 
@@ -539,10 +539,10 @@ fi
 echo ""
 echo "Services:"
 if [ "$NEED_SERVER" = true ]; then
-    echo "  sudo systemctl [start|stop|restart] screentinker-server"
+    echo "  sudo systemctl [start|stop|restart] techyzer-server"
 fi
 if [ "$NEED_PLAYER" = true ]; then
-    echo "  sudo systemctl [start|stop|restart] screentinker-kiosk"
+    echo "  sudo systemctl [start|stop|restart] techyzer-kiosk"
 fi
 echo ""
 echo -e "${YELLOW}Reboot to start:  sudo reboot${NC}"

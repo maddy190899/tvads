@@ -1,5 +1,5 @@
-#!/bin/bash
-# Bump the ScreenTinker version across every source of truth in one commit + tag.
+﻿#!/bin/bash
+# Bump the TechYzer version across every source of truth in one commit + tag.
 #
 #   scripts/bump-version.sh major|minor|patch|X.Y.Z
 #
@@ -79,7 +79,7 @@ sed -i -E "/^<\?xml/! s/([[:space:]]version=\")[0-9][^\"]*(\")/\1${NUMERIC}\2/" 
 # 5) commit + annotated tag (no push)
 git add VERSION server/package.json server/package-lock.json android/app/build.gradle.kts tizen/config.xml
 git commit -q -m "chore(release): v$NEW"
-git tag -a "v$NEW" -m "ScreenTinker v$NEW"
+git tag -a "v$NEW" -m "TechYzer v$NEW"
 
 echo
 echo "Committed + tagged v$NEW (nothing pushed). To release:"

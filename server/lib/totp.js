@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 // #100: TOTP (RFC 6238) helper. The shared secret is REVERSIBLE (the server must
 // recompute codes), so it's stored via secretbox (AES-256-GCM) - NOT hashed like the
@@ -11,7 +11,7 @@ const secretbox = require('./secretbox');
 const { hashToken } = require('../middleware/apiToken');
 
 const STEP_SEC = 30;
-const ISSUER = 'ScreenTinker';
+const ISSUER = 'TechYzer';
 authenticator.options = { window: 1 }; // accept ±1 step (±30s) for clock skew
 
 function generateSecret() { return authenticator.generateSecret(); }            // base32 plaintext

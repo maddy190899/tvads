@@ -1,6 +1,6 @@
 {
-  "name": "ScreenTinker",
-  "short_name": "ScreenTinker",
+  "name": "TechYzer",
+  "short_name": "TechYzer",
   "description": "Digital Signage Management",
   "start_url": "/",
   "display": "standalone",
@@ -9,12 +9,12 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/assets/icon-192.png",
+      "src": "/assets/techyzer-logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/assets/icon-512.png",
+      "src": "/assets/techyzer-logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }

@@ -1,4 +1,4 @@
-# Releasing ScreenTinker
+﻿# Releasing TechYzer
 
 `VERSION` (repo root) is the single source of truth the server reports at runtime.
 Cutting a release is three steps.
@@ -27,7 +27,7 @@ Pushing the tag fires `.github/workflows/release.yml`:
 - **artifacts** - builds the source tarball (bundling the unsigned Tizen `.wgt`)
   and creates the GitHub Release with generated notes.
 - **docker** - builds a multi-arch (amd64 + arm64) image and pushes
-  `ghcr.io/screentinker/screentinker:X.Y.Z` and `:latest`.
+  `ghcr.io/techyzer/techyzer:X.Y.Z` and `:latest`.
 
 `artifacts` and `docker` are independent jobs: a docker (arm64/QEMU) failure does
 not block the GitHub Release and can be re-run on its own. Nothing here deploys to
@@ -43,22 +43,22 @@ KEYSTORE_PASSWORD=... KEY_PASSWORD=... scripts/finalize-release.sh
 ```
 
 It builds the signed APK, pulls the CI-built unsigned `.wgt` back from the
-release, assembles a complete tarball (source + `ScreenTinker.apk` +
-`ScreenTinker.wgt` at the root, where `/download/apk` resolves the apk after
+release, assembles a complete tarball (source + `TechYzer.apk` +
+`TechYzer.wgt` at the root, where `/download/apk` resolves the apk after
 extraction), and uploads the apk + complete tarball.
 
 ## What a release contains
 
 Each release carries these as standalone assets AND bundled in the tarball:
 
-- `screentinker-X.Y.Z.tar.gz` - server + frontend source + apk + wgt at the root
-- `ScreenTinker.apk` - signed Android player
-- `ScreenTinker.wgt` - Tizen TV web app (unsigned; see [tizen/README.md](tizen/README.md))
-- `ghcr.io/screentinker/screentinker:X.Y.Z` + `:latest` - Docker image
+- `techyzer-X.Y.Z.tar.gz` - server + frontend source + apk + wgt at the root
+- `TechYzer.apk` - signed Android player
+- `TechYzer.wgt` - Tizen TV web app (unsigned; see [tizen/README.md](tizen/README.md))
+- `ghcr.io/techyzer/techyzer:X.Y.Z` + `:latest` - Docker image
 
 ## One-time / occasional
 
 - **ghcr visibility:** new packages default to private. Set the package Public
-  once (Repo -> Packages -> `screentinker` -> Package settings -> Change
+  once (Repo -> Packages -> `techyzer` -> Package settings -> Change
   visibility -> Public) so anonymous `docker pull` works.
 - **Self-hosters upgrade** with `scripts/upgrade.sh [vX.Y.Z]` (see the README).

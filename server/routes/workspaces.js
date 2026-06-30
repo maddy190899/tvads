@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const { db } = require('../db/database');
@@ -160,13 +160,13 @@ function listMembers(workspaceId, organizationId) {
 }
 
 function buildInviteEmail({ workspaceName, organizationName, inviterName, role, acceptUrl }) {
-  const subject = `You've been invited to ${workspaceName} on ScreenTinker`;
+  const subject = `You've been invited to ${workspaceName} on TechYzer`;
   const roleLabel = role.replace(/^workspace_/, '');
   const text = [
-    `${inviterName || 'A ScreenTinker user'} invited you to join ${workspaceName}`
+    `${inviterName || 'A TechYzer user'} invited you to join ${workspaceName}`
       + (organizationName ? ` (${organizationName})` : '') + ` as ${roleLabel}.`,
     '',
-    `To accept, sign in to ScreenTinker and open:`,
+    `To accept, sign in to TechYzer and open:`,
     acceptUrl,
     '',
     `This invite expires in ${INVITE_EXPIRY_DAYS} days.`,

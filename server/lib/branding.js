@@ -21,9 +21,9 @@
 const PLATFORM_DEFAULT_ID = 'platform-default';
 
 const HARDCODED_BRANDING = {
-  brand_name: 'ScreenTinker',
-  logo_url: null,
-  favicon_url: null,
+  brand_name: 'TechYzer',
+  logo_url: '/assets/techyzer-logo.png',
+  favicon_url: '/assets/techyzer-logo.png',
   primary_color: '#3B82F6',
   secondary_color: '#1E293B',
   bg_color: '#111827',

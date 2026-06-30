@@ -87,14 +87,14 @@ function postSendMail(token, payload) {
   });
 }
 
-// rawSubject: when true, the subject is sent verbatim (no "[ScreenTinker] "
+// rawSubject: when true, the subject is sent verbatim (no "[TechYzer] "
 // prefix) — used by the signup emails which carry their own clean subjects.
 // fromName: overrides the default GRAPH_SENDER_NAME display name (the From
 // address is always graphSenderEmail, so replies still land in that mailbox).
 function buildSendMailPayload(to, subject, text, html, fromName, rawSubject) {
   return {
     message: {
-      subject: rawSubject ? subject : `[ScreenTinker] ${subject}`,
+      subject: rawSubject ? subject : `[TechYzer] ${subject}`,
       body: {
         contentType: 'HTML',
         content: html || `<pre style="font-family:sans-serif">${escapeHtml(text || '')}</pre>`,
@@ -103,7 +103,7 @@ function buildSendMailPayload(to, subject, text, html, fromName, rawSubject) {
       from: {
         emailAddress: {
           address: config.graphSenderEmail,
-          name: fromName || config.graphSenderName || 'ScreenTinker',
+          name: fromName || config.graphSenderName || 'TechYzer',
         },
       },
     },

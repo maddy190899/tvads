@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * Emergency admin access for self-hosted ScreenTinker.
+ * Emergency admin access for self-hosted TechYzer.
  * Run this on the server to get a temporary admin login URL.
  *
  * Usage: node scripts/reset-admin.js
@@ -22,7 +22,7 @@ const port = config.port || 3001;
 
 console.log(`
 ╔══════════════════════════════════════════════════╗
-║         ScreenTinker Admin Recovery              ║
+║         TechYzer Admin Recovery              ║
 ╠══════════════════════════════════════════════════╣
 ║  A temporary admin token has been generated.     ║
 ║  Valid for 1 hour. Use it to log in and reset    ║
@@ -31,7 +31,7 @@ console.log(`
 
 Token: ${token}
 
-To use: Open your ScreenTinker instance, open browser
+To use: Open your TechYzer instance, open browser
 console (F12), and run:
 
   localStorage.setItem('token', '${token}');

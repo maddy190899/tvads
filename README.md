@@ -1,8 +1,8 @@
-# ScreenTinker
+﻿# TechYzer
 
-ScreenTinker is self-hosted digital signage software. Manage screens across multiple locations from one dashboard — built for retail, offices, lobbies, and any environment where you need centralized control over what's displayed on remote screens. Open source, multi-tenant, single-developer maintained with direct contact access.
+TechYzer is self-hosted digital signage software. Manage screens across multiple locations from one dashboard — built for retail, offices, lobbies, and any environment where you need centralized control over what's displayed on remote screens. Open source, multi-tenant, single-developer maintained with direct contact access.
 
-**Hosted version:** [screentinker.com](https://screentinker.com) — free tier available, no credit card required.
+**Hosted version:** [techyzer.com](https://techyzer.com) — free tier available, no credit card required.
 **Community:** [Discord](https://discord.gg/utTdsrqq4Z)
 
 ## Features
@@ -89,8 +89,8 @@ Android TV, Fire TV, Raspberry Pi, Windows, ChromeOS, LG webOS, Samsung Tizen, a
 ### Quick Start
 
 ```bash
-git clone https://github.com/screentinker/screentinker.git
-cd screentinker/server
+git clone https://github.com/techyzer/techyzer.git
+cd techyzer/server
 npm install
 SELF_HOSTED=true npm start
 ```
@@ -195,7 +195,7 @@ Send email notifications when devices go offline. Backed by Microsoft Graph Mail
 | `GRAPH_CLIENT_ID` | Azure AD app registration client ID |
 | `GRAPH_CLIENT_SECRET` | Azure AD app registration client secret |
 | `GRAPH_SENDER_EMAIL` | Mailbox to send from (must be a valid mailbox or alias in the tenant) |
-| `GRAPH_SENDER_NAME` | Display name shown in the email `From` field (defaults to `ScreenTinker`) |
+| `GRAPH_SENDER_NAME` | Display name shown in the email `From` field (defaults to `TechYzer`) |
 
 **Azure AD app setup:**
 
@@ -228,25 +228,25 @@ For production, put the app behind a reverse proxy (nginx, Caddy, etc.) with SSL
 
 ```bash
 # Create a dedicated user
-sudo useradd -r -s /bin/false screentinker
+sudo useradd -r -s /bin/false techyzer
 
 # Copy the app
-sudo cp -r . /opt/screentinker
-sudo chown -R screentinker:screentinker /opt/screentinker
+sudo cp -r . /opt/techyzer
+sudo chown -R techyzer:techyzer /opt/techyzer
 
 # Install dependencies
-cd /opt/screentinker/server && npm install --production
+cd /opt/techyzer/server && npm install --production
 
 # Create a systemd service
-sudo cat > /etc/systemd/system/screentinker.service << 'EOF'
+sudo cat > /etc/systemd/system/techyzer.service << 'EOF'
 [Unit]
-Description=ScreenTinker
+Description=TechYzer
 After=network.target
 
 [Service]
 Type=simple
-User=screentinker
-WorkingDirectory=/opt/screentinker/server
+User=techyzer
+WorkingDirectory=/opt/techyzer/server
 ExecStart=/usr/bin/node server.js
 Restart=always
 Environment=PORT=3001
@@ -273,7 +273,7 @@ Environment=SELF_HOSTED=true
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl enable --now screentinker
+sudo systemctl enable --now techyzer
 ```
 
 #### Nginx Example
@@ -313,7 +313,7 @@ server {
 To update a running instance to the latest version:
 
 ```bash
-cd /opt/screentinker
+cd /opt/techyzer
 
 # Upgrade to the latest tagged release. Backs up the db (a .backup snapshot under
 # ./backups), checks out the tag, runs npm ci --omit=dev, restarts the service,
@@ -324,25 +324,25 @@ scripts/upgrade.sh
 scripts/upgrade.sh v1.8.0
 ```
 
-Set `SERVICE_NAME` if your systemd unit is not named `screentinker`.
+Set `SERVICE_NAME` if your systemd unit is not named `techyzer`.
 
 If you deployed without git, initialize it once so `upgrade.sh` can resolve tags:
 
 ```bash
-cd /opt/screentinker
+cd /opt/techyzer
 git init
-git remote add origin https://github.com/screentinker/screentinker.git
+git remote add origin https://github.com/techyzer/techyzer.git
 git fetch origin --tags
 git checkout -f main
 cd server && npm install --production
-sudo systemctl restart screentinker
+sudo systemctl restart techyzer
 ```
 
 **Track bleeding edge (`main`)** instead of tagged releases - newest code, less tested:
 
 ```bash
-cd /opt/screentinker && git checkout main && git pull origin main
-cd server && npm install --production && sudo systemctl restart screentinker
+cd /opt/techyzer && git checkout main && git pull origin main
+cd server && npm install --production && sudo systemctl restart techyzer
 ```
 
 Your database, uploads, and configuration are preserved — only code files are updated.
@@ -365,11 +365,11 @@ retention and an error log. Add a cron entry:
 
 ```bash
 # as root (or your service user) — adjust the path to your install
-0 3 * * * /opt/screentinker/scripts/backup.sh
+0 3 * * * /opt/techyzer/scripts/backup.sh
 ```
 
 Override defaults with env vars if your layout differs:
-`SCREENTINKER_DIR` (default `/opt/screentinker`), `BACKUP_DIR`, `DB`, `UPLOADS`,
+`SCREENTINKER_DIR` (default `/opt/techyzer`), `BACKUP_DIR`, `DB`, `UPLOADS`,
 `DAILY_KEEP` (7), `MONTHLY_KEEP` (12), `DB_KEEP_DAYS` (30). Backups land in
 `$BACKUP_DIR` (`remote_display-<ts>.db`, `content-latest/`, `content-<ts>/`,
 `content-monthly-<YYYYMM>/`) and each run appends to `$BACKUP_DIR/backup.log`.
@@ -398,10 +398,10 @@ export KEY_PASSWORD=your_password
 ./gradlew assembleDebug
 ```
 
-The APK will be at `android/app/build/outputs/apk/debug/app-debug.apk`. Copy it to `server/` as `ScreenTinker.apk` to serve it from `/download/apk`:
+The APK will be at `android/app/build/outputs/apk/debug/app-debug.apk`. Copy it to `server/` as `TechYzer.apk` to serve it from `/download/apk`:
 
 ```bash
-cp android/app/build/outputs/apk/debug/app-debug.apk ScreenTinker.apk
+cp android/app/build/outputs/apk/debug/app-debug.apk TechYzer.apk
 ```
 
 > **Release builds & MDM signage (#81):** `./gradlew assembleRelease` is automatically
@@ -421,9 +421,9 @@ keytool -genkey -v -keystore android/release-key.jks -keyalg RSA -keysize 2048 -
 
 ### Device Setup
 
-1. Register at your ScreenTinker instance
+1. Register at your TechYzer instance
 2. Go to **Displays** and click **Add Display**
-3. Install the ScreenTinker app on your device:
+3. Install the TechYzer app on your device:
    - **Android TV / tablets**: Download the APK from your instance (`/download/apk`) or build it from source (see above)
    - **Raspberry Pi**: `curl -sSL https://your-instance/scripts/raspberry-pi-setup.sh | bash`
    - **Debian 13 (headless)**: `curl -sSL https://your-instance/scripts/debian-13-setup.sh | sudo bash`
@@ -438,11 +438,11 @@ keytool -genkey -v -keystore android/release-key.jks -keyalg RSA -keysize 2048 -
 
 ### For Developers
 
-Working on ScreenTinker itself:
+Working on TechYzer itself:
 
 ```bash
-git clone https://github.com/screentinker/screentinker.git
-cd screentinker/server
+git clone https://github.com/techyzer/techyzer.git
+cd techyzer/server
 npm install
 npm start          # starts in dev with --env-file-if-exists=.env
 # or:
@@ -467,7 +467,7 @@ APP_URL=https://localhost:3443
 
 **Running against a fresh prod DB clone?** Set `GRAPH_DEV_RESTRICT_TO=your-email@example.com` to keep accidental sends from reaching real users in the cloned database. Sends to anyone outside the list are logged but never posted to Graph.
 
-**Reporting issues:** [GitHub Issues](https://github.com/screentinker/screentinker/issues) for bugs and feature requests, or drop into [Discord](https://discord.gg/utTdsrqq4Z) for quick questions and feedback.
+**Reporting issues:** [GitHub Issues](https://github.com/techyzer/techyzer/issues) for bugs and feature requests, or drop into [Discord](https://discord.gg/utTdsrqq4Z) for quick questions and feedback.
 
 **Contributions welcome.** Fork → branch → PR. There are no formal style guides yet beyond what you can pick up from reading the existing code. Tests aren't required but smoke-test against your local server before opening a PR.
 
@@ -504,11 +504,11 @@ scripts/          Device setup scripts + admin recovery
 
 ## Support
 
-ScreenTinker is built and maintained by one developer. If the project is useful to you and you want to support continued development:
+TechYzer is built and maintained by one developer. If the project is useful to you and you want to support continued development:
 
 - **[Donate via Wise](https://wise.com/pay/business/bytetinkerllc?utm_source=quick_pay)** — directly help fund continued development (ByteTinker LLC)
 - Star the repo on GitHub
-- Open [issues](https://github.com/screentinker/screentinker/issues) with feedback or bug reports
+- Open [issues](https://github.com/techyzer/techyzer/issues) with feedback or bug reports
 - Drop into the [Discord](https://discord.gg/utTdsrqq4Z) and say hi
 - Contribute back if you've extended something useful
 

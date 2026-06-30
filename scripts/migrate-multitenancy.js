@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 // Phase 1 multitenancy migration runner.
 //
 // Adds: organizations, organization_members, workspaces, workspace_members,

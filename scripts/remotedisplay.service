@@ -1,5 +1,5 @@
-[Unit]
-Description=ScreenTinker Digital Signage Server
+﻿[Unit]
+Description=TechYzer Digital Signage Server
 After=network.target
 Wants=network-online.target
 

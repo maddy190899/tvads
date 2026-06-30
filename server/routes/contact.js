@@ -1,4 +1,4 @@
-// Public (unauthenticated) contact form endpoint. Used by the Enterprise /
+﻿// Public (unauthenticated) contact form endpoint. Used by the Enterprise /
 // Custom card on the marketing landing page to send a lead to Dan's inbox via
 // the existing Microsoft Graph email service.
 //
@@ -69,7 +69,7 @@ Message:
 ${cleanMessage || '(none)'}
 
 ---
-Submitted from screentinker.com pricing page
+Submitted from techyzer.com pricing page
 Source IP: ${req.ip}
 `;
 

@@ -1,4 +1,4 @@
-// One-time signup emails (Slice 1):
+﻿// One-time signup emails (Slice 1):
 //   (a) a personal welcome email to the new user, and
 //   (b) an admin notification to Dan so no signup goes unnoticed.
 //
@@ -31,10 +31,10 @@ const config = require('../config');
 const ADMIN_NOTIFY_TO = process.env.ADMIN_NOTIFY_EMAIL || null;
 
 const LINKS = {
-  player:     'https://screentinker.com/player/',
-  pi:         'https://screentinker.com/guides/raspberry-pi-digital-signage.html',
-  androidTv:  'https://screentinker.com/guides/digital-signage-android-tv.html',
-  selfHosted: 'https://screentinker.com/guides/self-hosted-digital-signage.html',
+  player:     'https://techyzer.com/player/',
+  pi:         'https://techyzer.com/guides/raspberry-pi-digital-signage.html',
+  androidTv:  'https://techyzer.com/guides/digital-signage-android-tv.html',
+  selfHosted: 'https://techyzer.com/guides/self-hosted-digital-signage.html',
   discord:    'https://discord.gg/utTdsrqq4Z',
 };
 
@@ -49,9 +49,9 @@ function htmlEscape(s) {
 function welcomeText(name) {
   return `Hi ${name},
 
-Thanks for signing up for ScreenTinker. Glad you're here.
+Thanks for signing up for TechYzer. Glad you're here.
 
-One thing worth knowing up front. ScreenTinker is run by one person, me.
+One thing worth knowing up front. TechYzer is run by one person, me.
 There's no support queue or ticket robot. If you hit reply to this email,
 it comes straight to me and I'll answer.
 
@@ -74,14 +74,14 @@ Want to ask a human or see what others are building? Discord's here:
 Just hit reply if anything's unclear or not working. I read every email.
 
 - Dan
-ScreenTinker`;
+TechYzer`;
 }
 
 function welcomeHtml(name) {
   return `<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.6;color:#222;max-width:560px">
 <p>Hi ${htmlEscape(name)},</p>
-<p>Thanks for signing up for ScreenTinker. Glad you're here.</p>
-<p>One thing worth knowing up front. ScreenTinker is run by one person, me. There's no support queue or ticket robot. If you hit reply to this email, it comes straight to me and I'll answer.</p>
+<p>Thanks for signing up for TechYzer. Glad you're here.</p>
+<p>One thing worth knowing up front. TechYzer is run by one person, me. There's no support queue or ticket robot. If you hit reply to this email, it comes straight to me and I'll answer.</p>
 <p>The fastest way to see it work is to put something on a screen. You can turn any browser into a display in about a minute with the web player:</p>
 <p><a href="${LINKS.player}" style="font-weight:600">Open the web player</a></p>
 <p>Open that on whatever you want to use as a screen, pair it from your dashboard, and you're live.</p>
@@ -93,7 +93,7 @@ function welcomeHtml(name) {
 </ul>
 <p>Want to ask a human or see what others are building? <a href="${LINKS.discord}">Discord's here</a>.</p>
 <p>Just hit reply if anything's unclear or not working. I read every email.</p>
-<p>- Dan<br>ScreenTinker</p>
+<p>- Dan<br>TechYzer</p>
 </div>`;
 }
 
@@ -110,7 +110,7 @@ function fmtCentral(unixSec) {
 }
 
 function adminText({ name, email, orgName, signupUnix, ip, country, userAgent }) {
-  return `New ScreenTinker signup.
+  return `New TechYzer signup.
 
 Name:       ${name}
 Email:      ${email}
@@ -152,9 +152,9 @@ function sendSignupEmails(user, req) {
     (async () => {
       const w = await sendEmail({
         to: email,
-        fromName: 'Dan at ScreenTinker',
+        fromName: 'Dan at TechYzer',
         rawSubject: true,
-        subject: 'Welcome to ScreenTinker',
+        subject: 'Welcome to TechYzer',
         text: welcomeText(name),
         html: welcomeHtml(name),
       });

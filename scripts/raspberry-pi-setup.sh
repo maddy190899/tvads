@@ -1,16 +1,16 @@
-#!/bin/bash
-# ScreenTinker - Raspberry Pi Setup Script
+﻿#!/bin/bash
+# TechYzer - Raspberry Pi Setup Script
 #
-# All-in-One: runs the ScreenTinker server AND kiosk player on one Pi
-# Player-Only: connects to an existing ScreenTinker server
+# All-in-One: runs the TechYzer server AND kiosk player on one Pi
+# Player-Only: connects to an existing TechYzer server
 #
 # Usage:
-#   All-in-One:   curl -sSL https://screentinker.com/scripts/raspberry-pi-setup.sh | sudo bash
-#   Player-Only:  curl -sSL https://screentinker.com/scripts/raspberry-pi-setup.sh | sudo bash -s -- --player-only https://screentinker.com
+#   All-in-One:   curl -sSL https://techyzer.com/scripts/raspberry-pi-setup.sh | sudo bash
+#   Player-Only:  curl -sSL https://techyzer.com/scripts/raspberry-pi-setup.sh | sudo bash -s -- --player-only https://techyzer.com
 #
 # Or clone and run:
-#   git clone https://github.com/screentinker/screentinker.git
-#   cd screentinker/scripts && sudo ./raspberry-pi-setup.sh
+#   git clone https://github.com/techyzer/techyzer.git
+#   cd techyzer/scripts && sudo ./raspberry-pi-setup.sh
 #
 # Works on Raspberry Pi OS Lite or Desktop (Bookworm / Bullseye)
 # Tested on Pi 3B+, Pi 4, Pi 5
@@ -18,10 +18,10 @@
 set -euo pipefail
 
 # -- Configuration --
-SCREENTINKER_DIR="/opt/screentinker"
+SCREENTINKER_DIR="/opt/techyzer"
 SCREENTINKER_PORT=3001
 NODE_MAJOR=20
-LOG_FILE="/var/log/screentinker-setup.log"
+LOG_FILE="/var/log/techyzer-setup.log"
 
 # -- Colors --
 RED='\033[0;31m'
@@ -30,7 +30,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log()  { echo -e "${GREEN}[ScreenTinker]${NC} $1"; }
+log()  { echo -e "${GREEN}[TechYzer]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 err()  { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
@@ -50,7 +50,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Examples:"
             echo "  sudo ./raspberry-pi-setup.sh                                    # All-in-One (interactive)"
-            echo "  sudo ./raspberry-pi-setup.sh --player-only https://screentinker.com"
+            echo "  sudo ./raspberry-pi-setup.sh --player-only https://techyzer.com"
             exit 0
             ;;
         http*) SERVER_URL="$1"; shift ;;
@@ -75,7 +75,7 @@ fi
 if [ "$PLAYER_ONLY" = false ] && [ -z "$SERVER_URL" ]; then
     echo ""
     echo -e "${BLUE}======================================${NC}"
-    echo -e "${BLUE}   ScreenTinker Raspberry Pi Setup${NC}"
+    echo -e "${BLUE}   TechYzer Raspberry Pi Setup${NC}"
     echo -e "${BLUE}======================================${NC}"
     echo ""
     echo "  1) All-in-One  (recommended)"
@@ -83,14 +83,14 @@ if [ "$PLAYER_ONLY" = false ] && [ -z "$SERVER_URL" ]; then
     echo "     Manage everything from your phone."
     echo ""
     echo "  2) Player Only"
-    echo "     Connects to an existing ScreenTinker server."
+    echo "     Connects to an existing TechYzer server."
     echo "     This Pi just displays content."
     echo ""
     read -p "Choose [1/2]: " MODE_CHOICE
     case "$MODE_CHOICE" in
         2)
             PLAYER_ONLY=true
-            read -p "Server URL (e.g., https://screentinker.com): " SERVER_URL
+            read -p "Server URL (e.g., https://techyzer.com): " SERVER_URL
             ;;
         *) ;;
     esac
@@ -157,15 +157,15 @@ if [ "$PLAYER_ONLY" = false ]; then
 fi
 
 # ============================================================
-# 3. Clone / update ScreenTinker (all-in-one only)
+# 3. Clone / update TechYzer (all-in-one only)
 # ============================================================
 if [ "$PLAYER_ONLY" = false ]; then
     if [ -d "$SCREENTINKER_DIR/.git" ]; then
         log "Repo exists at $SCREENTINKER_DIR, pulling latest..."
         cd "$SCREENTINKER_DIR" && git pull origin main >> "$LOG_FILE" 2>&1
     else
-        log "Cloning ScreenTinker..."
-        git clone https://github.com/screentinker/screentinker.git "$SCREENTINKER_DIR" >> "$LOG_FILE" 2>&1
+        log "Cloning TechYzer..."
+        git clone https://github.com/techyzer/techyzer.git "$SCREENTINKER_DIR" >> "$LOG_FILE" 2>&1
     fi
 
     log "Installing Node.js dependencies..."
@@ -190,10 +190,10 @@ fi
 # 4. Server systemd service (all-in-one only)
 # ============================================================
 if [ "$PLAYER_ONLY" = false ]; then
-    log "Creating screentinker-server service..."
-    cat > /etc/systemd/system/screentinker-server.service << EOF
+    log "Creating techyzer-server service..."
+    cat > /etc/systemd/system/techyzer-server.service << EOF
 [Unit]
-Description=ScreenTinker Digital Signage Server
+Description=TechYzer Digital Signage Server
 After=network-online.target
 Wants=network-online.target
 
@@ -214,14 +214,14 @@ Environment=HOST=0.0.0.0
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=screentinker-server
+SyslogIdentifier=techyzer-server
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
     systemctl daemon-reload
-    systemctl enable screentinker-server.service
+    systemctl enable techyzer-server.service
     log "Server service enabled"
 fi
 
@@ -251,9 +251,9 @@ CHROMIUM_BIN=$(command -v chromium-browser 2>/dev/null || command -v chromium 2>
 # 6. Kiosk launcher script
 # ============================================================
 log "Creating kiosk launcher..."
-cat > "$PI_HOME/screentinker-kiosk.sh" << KIOSKEOF
+cat > "$PI_HOME/techyzer-kiosk.sh" << KIOSKEOF
 #!/bin/bash
-# ScreenTinker Kiosk - launches Chromium in fullscreen player mode
+# TechYzer Kiosk - launches Chromium in fullscreen player mode
 KIOSK_URL="${KIOSK_URL}"
 
 # Wait for display
@@ -278,7 +278,7 @@ fi
 
 # Wait for local server if running all-in-one
 if echo "\$KIOSK_URL" | grep -q "localhost"; then
-    echo "Waiting for ScreenTinker server..."
+    echo "Waiting for TechYzer server..."
     for i in \$(seq 1 30); do
         if curl -sf "http://localhost:${SCREENTINKER_PORT}/api/status" >/dev/null 2>&1; then
             echo "Server ready"
@@ -325,8 +325,8 @@ exec ${CHROMIUM_BIN} \\
     "\$KIOSK_URL"
 KIOSKEOF
 
-chmod +x "$PI_HOME/screentinker-kiosk.sh"
-chown "$PI_USER":"$PI_USER" "$PI_HOME/screentinker-kiosk.sh"
+chmod +x "$PI_HOME/techyzer-kiosk.sh"
+chown "$PI_USER":"$PI_USER" "$PI_HOME/techyzer-kiosk.sh"
 
 # ============================================================
 # 7. Xinitrc (Pi OS Lite - starts kiosk from console)
@@ -334,7 +334,7 @@ chown "$PI_USER":"$PI_USER" "$PI_HOME/screentinker-kiosk.sh"
 if [ "$HAS_DESKTOP" = false ]; then
     cat > "$PI_HOME/.xinitrc" << 'EOF'
 #!/bin/bash
-exec ~/screentinker-kiosk.sh
+exec ~/techyzer-kiosk.sh
 EOF
     chmod +x "$PI_HOME/.xinitrc"
     chown "$PI_USER":"$PI_USER" "$PI_HOME/.xinitrc"
@@ -348,16 +348,16 @@ log "Creating kiosk service..."
 if [ "$HAS_DESKTOP" = false ]; then
     # Lite: start X ourselves
     if [ "$PLAYER_ONLY" = false ]; then
-        KIOSK_AFTER="After=screentinker-server.service"
-        KIOSK_REQ="Requires=screentinker-server.service"
+        KIOSK_AFTER="After=techyzer-server.service"
+        KIOSK_REQ="Requires=techyzer-server.service"
     else
         KIOSK_AFTER="After=network-online.target"
         KIOSK_REQ="Wants=network-online.target"
     fi
 
-    cat > /etc/systemd/system/screentinker-kiosk.service << EOF
+    cat > /etc/systemd/system/techyzer-kiosk.service << EOF
 [Unit]
-Description=ScreenTinker Kiosk Display
+Description=TechYzer Kiosk Display
 ${KIOSK_AFTER}
 ${KIOSK_REQ}
 
@@ -375,7 +375,7 @@ TTYPath=/dev/tty1
 StandardInput=tty
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=screentinker-kiosk
+SyslogIdentifier=techyzer-kiosk
 
 [Install]
 WantedBy=multi-user.target
@@ -383,16 +383,16 @@ EOF
 else
     # Desktop: X already running, just launch Chromium
     if [ "$PLAYER_ONLY" = false ]; then
-        KIOSK_AFTER="After=screentinker-server.service graphical.target"
-        KIOSK_REQ="Requires=screentinker-server.service"
+        KIOSK_AFTER="After=techyzer-server.service graphical.target"
+        KIOSK_REQ="Requires=techyzer-server.service"
     else
         KIOSK_AFTER="After=graphical.target"
         KIOSK_REQ="Wants=graphical.target"
     fi
 
-    cat > /etc/systemd/system/screentinker-kiosk.service << EOF
+    cat > /etc/systemd/system/techyzer-kiosk.service << EOF
 [Unit]
-Description=ScreenTinker Kiosk Display
+Description=TechYzer Kiosk Display
 ${KIOSK_AFTER}
 ${KIOSK_REQ}
 
@@ -401,13 +401,13 @@ Type=simple
 User=${PI_USER}
 Environment=DISPLAY=:0
 ExecStartPre=/bin/sleep 5
-ExecStart=/bin/bash ${PI_HOME}/screentinker-kiosk.sh
+ExecStart=/bin/bash ${PI_HOME}/techyzer-kiosk.sh
 Restart=always
 RestartSec=10
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=screentinker-kiosk
+SyslogIdentifier=techyzer-kiosk
 
 [Install]
 WantedBy=graphical.target
@@ -415,18 +415,18 @@ EOF
 fi
 
 systemctl daemon-reload
-systemctl enable screentinker-kiosk.service
+systemctl enable techyzer-kiosk.service
 log "Kiosk service enabled"
 
 # Desktop: autostart entry as fallback
 if [ "$HAS_DESKTOP" = true ]; then
     AUTOSTART_DIR="$PI_HOME/.config/autostart"
     mkdir -p "$AUTOSTART_DIR"
-    cat > "$AUTOSTART_DIR/screentinker.desktop" << EOF
+    cat > "$AUTOSTART_DIR/techyzer.desktop" << EOF
 [Desktop Entry]
 Type=Application
-Name=ScreenTinker Player
-Exec=${PI_HOME}/screentinker-kiosk.sh
+Name=TechYzer Player
+Exec=${PI_HOME}/techyzer-kiosk.sh
 X-GNOME-Autostart-enabled=true
 EOF
     chown -R "$PI_USER":"$PI_USER" "$AUTOSTART_DIR"
@@ -459,7 +459,7 @@ done
 if [ -n "$CONFIG_FILE" ]; then
     # GPU memory for video playback
     if ! grep -q "^gpu_mem=" "$CONFIG_FILE"; then
-        echo -e "\n# ScreenTinker: GPU memory for smooth video" >> "$CONFIG_FILE"
+        echo -e "\n# TechYzer: GPU memory for smooth video" >> "$CONFIG_FILE"
         echo "gpu_mem=128" >> "$CONFIG_FILE"
         log "GPU memory: 128MB"
     fi
@@ -499,43 +499,43 @@ fi
 if [ "$PLAYER_ONLY" = false ]; then
     log "Creating management scripts..."
 
-    cat > /usr/local/bin/screentinker-update << 'UPDATEEOF'
+    cat > /usr/local/bin/techyzer-update << 'UPDATEEOF'
 #!/bin/bash
 echo "Stopping services..."
-sudo systemctl stop screentinker-kiosk.service 2>/dev/null || true
-sudo systemctl stop screentinker-server.service 2>/dev/null || true
+sudo systemctl stop techyzer-kiosk.service 2>/dev/null || true
+sudo systemctl stop techyzer-server.service 2>/dev/null || true
 
 echo "Pulling latest..."
-cd /opt/screentinker && git pull origin main
+cd /opt/techyzer && git pull origin main
 
 echo "Installing dependencies..."
 cd server && npm install --production
 
 echo "Starting services..."
-sudo systemctl start screentinker-server.service
+sudo systemctl start techyzer-server.service
 sleep 3
-sudo systemctl start screentinker-kiosk.service
+sudo systemctl start techyzer-kiosk.service
 
 echo ""
-echo "Done! Server: $(systemctl is-active screentinker-server.service)"
-echo "      Kiosk:  $(systemctl is-active screentinker-kiosk.service)"
+echo "Done! Server: $(systemctl is-active techyzer-server.service)"
+echo "      Kiosk:  $(systemctl is-active techyzer-kiosk.service)"
 UPDATEEOF
-    chmod +x /usr/local/bin/screentinker-update
+    chmod +x /usr/local/bin/techyzer-update
 
-    cat > /usr/local/bin/screentinker-status << 'STATUSEOF'
+    cat > /usr/local/bin/techyzer-status << 'STATUSEOF'
 #!/bin/bash
 echo ""
-echo "=== ScreenTinker Status ==="
+echo "=== TechYzer Status ==="
 echo ""
 IP=$(hostname -I | awk '{print $1}')
 
-if systemctl is-active screentinker-server.service &>/dev/null; then
-    echo "Server:    RUNNING (PID $(systemctl show screentinker-server.service -p MainPID --value))"
+if systemctl is-active techyzer-server.service &>/dev/null; then
+    echo "Server:    RUNNING (PID $(systemctl show techyzer-server.service -p MainPID --value))"
 else
     echo "Server:    STOPPED"
 fi
 
-if systemctl is-active screentinker-kiosk.service &>/dev/null; then
+if systemctl is-active techyzer-kiosk.service &>/dev/null; then
     echo "Kiosk:     RUNNING"
 else
     echo "Kiosk:     STOPPED"
@@ -544,7 +544,7 @@ fi
 echo ""
 echo "Uptime:    $(uptime -p)"
 echo "CPU Temp:  $(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 || echo 'n/a')"
-echo "Disk:      $(df -h /opt/screentinker 2>/dev/null | tail -1 | awk '{print $3 "/" $2 " (" $5 " used)"}')"
+echo "Disk:      $(df -h /opt/techyzer 2>/dev/null | tail -1 | awk '{print $3 "/" $2 " (" $5 " used)"}')"
 echo "Memory:    $(free -h | awk '/Mem:/ {print $3 " / " $2}')"
 echo ""
 echo "Dashboard: http://${IP}:3001"
@@ -552,18 +552,18 @@ echo "Player:    http://${IP}:3001/player"
 echo "mDNS:      http://$(hostname).local:3001"
 echo ""
 STATUSEOF
-    chmod +x /usr/local/bin/screentinker-status
+    chmod +x /usr/local/bin/techyzer-status
 
-    cat > /usr/local/bin/screentinker-logs << 'LOGSEOF'
+    cat > /usr/local/bin/techyzer-logs << 'LOGSEOF'
 #!/bin/bash
 case "${1:-server}" in
-    server) journalctl -u screentinker-server.service -f --no-hostname ;;
-    kiosk)  journalctl -u screentinker-kiosk.service -f --no-hostname ;;
-    all)    journalctl -u screentinker-server.service -u screentinker-kiosk.service -f --no-hostname ;;
-    *)      echo "Usage: screentinker-logs [server|kiosk|all]" ;;
+    server) journalctl -u techyzer-server.service -f --no-hostname ;;
+    kiosk)  journalctl -u techyzer-kiosk.service -f --no-hostname ;;
+    all)    journalctl -u techyzer-server.service -u techyzer-kiosk.service -f --no-hostname ;;
+    *)      echo "Usage: techyzer-logs [server|kiosk|all]" ;;
 esac
 LOGSEOF
-    chmod +x /usr/local/bin/screentinker-logs
+    chmod +x /usr/local/bin/techyzer-logs
 fi
 
 # ============================================================
@@ -580,9 +580,9 @@ cat > /etc/motd << 'MOTDEOF'
  Open-Source Digital Signage for Any Screen
 
  Commands:
-   screentinker-status   Show system info and URLs
-   screentinker-update   Pull latest and restart
-   screentinker-logs     Follow logs (server|kiosk|all)
+   techyzer-status   Show system info and URLs
+   techyzer-update   Pull latest and restart
+   techyzer-logs     Follow logs (server|kiosk|all)
 
 MOTDEOF
 
@@ -604,7 +604,7 @@ fi
 # ============================================================
 echo ""
 echo -e "${GREEN}======================================${NC}"
-echo -e "${GREEN}   ScreenTinker Setup Complete!${NC}"
+echo -e "${GREEN}   TechYzer Setup Complete!${NC}"
 echo -e "${GREEN}======================================${NC}"
 echo ""
 
@@ -614,7 +614,7 @@ if [ "$PLAYER_ONLY" = false ]; then
     echo "Mode: All-in-One (server + player)"
     echo ""
     echo "After reboot this Pi will:"
-    echo "  - Start the ScreenTinker server on port $SCREENTINKER_PORT"
+    echo "  - Start the TechYzer server on port $SCREENTINKER_PORT"
     echo "  - Display the player fullscreen on the connected screen"
     echo ""
     echo "First steps:"
@@ -626,9 +626,9 @@ if [ "$PLAYER_ONLY" = false ]; then
     echo "  5. Upload content and push it to the screen"
     echo ""
     echo "Management:"
-    echo "  screentinker-status   Check everything is running"
-    echo "  screentinker-update   Update to latest version"
-    echo "  screentinker-logs     Watch server logs"
+    echo "  techyzer-status   Check everything is running"
+    echo "  techyzer-update   Update to latest version"
+    echo "  techyzer-logs     Watch server logs"
 else
     echo "Mode: Player Only"
     echo "Server: $SERVER_URL"
@@ -640,15 +640,15 @@ else
     echo "To pair:"
     echo "  1. Reboot:  sudo reboot"
     echo "  2. The pairing screen will appear on the TV"
-    echo "  3. Enter the code in your ScreenTinker dashboard"
+    echo "  3. Enter the code in your TechYzer dashboard"
 fi
 
 echo ""
 echo "Services:"
 if [ "$PLAYER_ONLY" = false ]; then
-    echo "  sudo systemctl [start|stop|restart] screentinker-server"
+    echo "  sudo systemctl [start|stop|restart] techyzer-server"
 fi
-echo "  sudo systemctl [start|stop|restart] screentinker-kiosk"
+echo "  sudo systemctl [start|stop|restart] techyzer-kiosk"
 echo ""
 echo -e "${YELLOW}Reboot to start:  sudo reboot${NC}"
 echo ""

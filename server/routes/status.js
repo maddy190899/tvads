@@ -122,7 +122,7 @@ router.get('/export', (req, res) => {
   const whiteLabel = workspaceId ? db.prepare('SELECT * FROM white_labels WHERE workspace_id = ?').get(workspaceId) : null;
 
   const exportData = {
-    format: 'screentinker-export-v2',
+    format: 'techyzer-export-v2',
     exported_at: new Date().toISOString(),
     user,
     devices: devices.map(d => {
@@ -150,7 +150,7 @@ router.get('/export', (req, res) => {
     const archiver = require('archiver');
     const dateStr = new Date().toISOString().split('T')[0];
     res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename=screentinker-export-${dateStr}.zip`);
+    res.setHeader('Content-Disposition', `attachment; filename=techyzer-export-${dateStr}.zip`);
 
     const archive = archiver('zip', { zlib: { level: 5 } });
     archive.pipe(res);
@@ -183,13 +183,13 @@ router.get('/export', (req, res) => {
   }
 
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Content-Disposition', `attachment; filename=screentinker-export-${new Date().toISOString().split('T')[0]}.json`);
+  res.setHeader('Content-Disposition', `attachment; filename=techyzer-export-${new Date().toISOString().split('T')[0]}.json`);
   res.json(exportData);
 });
 
 // User data import (JSON or ZIP with files)
 const multer = require('multer');
-const importUpload = multer({ dest: path.join(os.tmpdir(), 'screentinker-import'), limits: { fileSize: 2 * 1024 * 1024 * 1024 } }); // 2GB max
+const importUpload = multer({ dest: path.join(os.tmpdir(), 'techyzer-import'), limits: { fileSize: 2 * 1024 * 1024 * 1024 } }); // 2GB max
 
 router.post('/import', importUpload.single('file'), async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -231,7 +231,7 @@ router.post('/import', importUpload.single('file'), async (req, res) => {
     // ZIP upload — extract export.json and files/
     try {
       const unzipper = require('unzipper');
-      const extractDir = path.join(os.tmpdir(), `screentinker-import-${Date.now()}`);
+      const extractDir = path.join(os.tmpdir(), `techyzer-import-${Date.now()}`);
       fs.mkdirSync(extractDir, { recursive: true });
 
       await new Promise((resolve, reject) => {
@@ -277,11 +277,11 @@ router.post('/import', importUpload.single('file'), async (req, res) => {
   } else {
     data = req.body;
   }
-  if (!data || !data.format || !data.format.startsWith('screentinker-export')) {
-    return res.status(400).json({ error: 'Invalid export file. Must be a ScreenTinker export JSON.' });
+  if (!data || !data.format || (!data.format.startsWith('screentinker-export') && !data.format.startsWith('techyzer-export'))) {
+    return res.status(400).json({ error: 'Invalid export file. Must be a TechYzer export JSON.' });
   }
 
-  const isV2 = data.format === 'screentinker-export-v2';
+  const isV2 = data.format === 'screentinker-export-v2' || data.format === 'techyzer-export-v2';
   const uuid = require('uuid');
   const stats = { devices: 0, content: 0, widgets: 0, layouts: 0, playlists: 0, schedules: 0, video_walls: 0, kiosk_pages: 0, device_groups: 0 };
 

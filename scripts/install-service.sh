@@ -1,9 +1,9 @@
-#!/bin/bash
-# Install ScreenTinker as a systemd service
+﻿#!/bin/bash
+# Install TechYzer as a systemd service
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SERVICE_FILE="$SCRIPT_DIR/remotedisplay.service"
 
-echo "Installing ScreenTinker service..."
+echo "Installing TechYzer service..."
 sudo cp "$SERVICE_FILE" /etc/systemd/system/remotedisplay.service
 sudo systemctl daemon-reload
 sudo systemctl enable remotedisplay

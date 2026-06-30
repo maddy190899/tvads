@@ -1,10 +1,10 @@
-# Example docker-compose for self-hosting ScreenTinker.
+# Example docker-compose for self-hosting TechYzer.
 #   cp docker-compose.example.yml docker-compose.yml   # then edit to taste
 # The container serves plain HTTP on 3001 - front it with a TLS-terminating
 # reverse proxy or Cloudflare in production.
 services:
-  screentinker:
-    image: ghcr.io/screentinker/screentinker:latest
+  techyzer:
+    image: ghcr.io/techyzer/techyzer:latest
     # ...or build from source instead of pulling:
     # build: .
     restart: unless-stopped
@@ -12,12 +12,14 @@ services:
       - "3001:3001"
     environment:
       SELF_HOSTED: "true"            # first registered user becomes admin, no billing
+      HIDE_BILLING: "true"           # hide subscription/billing UI elements
+      DISABLE_REGISTRATION: "true"   # disable self-service user signup
+      DISABLE_HOMEPAGE: "true"       # redirect / to the login page instead of the landing page
       # JWT_SECRET: "set-a-long-random-string"   # else one is generated under /data/certs
-      # DISABLE_HOMEPAGE: "true"     # redirect / to the app instead of the landing page
     volumes:
       - st-data:/data               # db, uploads, and the jwt secret persist here
       # To enable OTA APK downloads, mount a built APK read-only:
-      # - ./ScreenTinker.apk:/data/ScreenTinker.apk:ro
+      # - ./TechYzer.apk:/data/TechYzer.apk:ro
     healthcheck:
       # image is node:20-slim (no curl) - use node's built-in fetch
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -27,7 +29,7 @@ services:
       start_period: 30s             # first boot runs db migrations
 
 # Locked out of the admin account? Reset it with:
-#   docker exec -it screentinker node scripts/reset-admin.js
+#   docker exec -it techyzer node scripts/reset-admin.js
 
 volumes:
   st-data:
