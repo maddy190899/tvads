@@ -1,6 +1,6 @@
 ﻿# TechYzer
 
-TechYzer is self-hosted digital signage software. Manage screens across multiple locations from one dashboard — built for retail, offices, lobbies, and any environment where you need centralized control over what's displayed on remote screens. Open source, multi-tenant, single-developer maintained with direct contact access.
+TechYzer is self-hosted digital signage software. Manage screens across multiple locations from one dashboard — built for retail, offices, lobbies, and any environment where you need centralized control over what's displayed on remote screens. self-hosted, multi-tenant, single-developer maintained with direct contact access.
 
 **Hosted version:** [techyzer.com](https://techyzer.com) — free tier available, no credit card required.
 **Community:** [Discord](https://discord.gg/utTdsrqq4Z)

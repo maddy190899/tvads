@@ -1,7 +1,7 @@
 ﻿# Security Policy
 
 Thanks for taking the time to look at TechYzer's security. The project
-is a one-person open-source effort, so response times reflect that — but
+is a one-person self-hosted effort, so response times reflect that — but
 reports are taken seriously and handled in good faith.
 
 ## Reporting a vulnerability

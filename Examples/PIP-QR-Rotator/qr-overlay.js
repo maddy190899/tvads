@@ -3,7 +3,7 @@
 // fully offline. Reads ?data (the QR payload) and ?label (caption) from the URL.
 //
 // The encoder is a compact byte-mode implementation of the QR Code spec (ISO/IEC 18004),
-// based on Nayuki's "QR Code generator" reference algorithm (MIT License). Byte mode is
+// based on Nayuki's "QR Code generator" reference algorithm (proprietary license). Byte mode is
 // used for everything, so any UTF-8 payload works (URLs, WIFI: strings, plain text).
 //
 // It also exports its internals via module.exports when require()'d in Node, so the

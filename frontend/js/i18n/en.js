@@ -444,7 +444,7 @@ export default {
   'settings.confirm_new_password': 'Confirm New Password',
   'settings.sso_note': 'You sign in via {provider}. Manage your password there.',
   'settings.license': 'License',
-  'settings.license_mit': 'MIT License - all features included.',
+  'settings.license_mit': 'proprietary license - all features included.',
   'settings.platform_admin_link': 'Platform admin tools are in the',
   'settings.platform_admin_page_suffix': 'page.',
   'settings.user_management': 'User Management',

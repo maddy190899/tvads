@@ -577,7 +577,7 @@ cat > /etc/motd << 'MOTDEOF'
   ___) | (__| | |  __/  __/   | || | | | |   <  __/ |
  |____/ \___|_|  \___|\___|   |_||_|_| |_|_|\_\___|_|
 
- Open-Source Digital Signage for Any Screen
+ self-hosted digital signage for Any Screen
 
  Commands:
    techyzer-status   Show system info and URLs

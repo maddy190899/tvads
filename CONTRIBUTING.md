@@ -50,4 +50,4 @@ If you discover a security vulnerability, please email **support@techyzer.com** 
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing, you agree that your contributions will be licensed under the [proprietary license](LICENSE).

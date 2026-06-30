@@ -24,7 +24,7 @@ const { getClientIp } = require('./activity');
 const config = require('../config');
 
 // Admin signup-notify recipient. Sourced from env (not hardcoded) so the
-// hosted .com address never ships in open-source code: a self-hoster who
+// hosted .com address never ships in self-hosted code: a self-hoster who
 // configures Graph but forgets SELF_HOSTED=true would otherwise fire their
 // users' signup PII into our inbox. Unset -> admin notify is skipped entirely
 // (the user's welcome email is unaffected). Hosted prod sets this env var.
